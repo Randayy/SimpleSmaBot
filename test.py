@@ -1,20 +1,21 @@
-from BinaryOptionsToolsV2.pocketoption import PocketOptionAsync
-from datetime import timedelta
-import time
 import asyncio
+from BinaryOptionsToolsV2.pocketoption import PocketOptionAsync
+
 
 # Main part of the code
-async def main(ssid: str):
-    # The api automatically detects if the 'ssid' is for real or demo account
-    api = PocketOptionAsync(ssid)    
-    time.sleep(5)
-    stream = await api.subscribe_symbol_timed("EURUSD_otc", timedelta(seconds=5)) # Returns a candle obtained from combining candles that are inside a specific time range
-    
-    # This should run forever so you will need to force close the program
-    async for candle in stream:
-        print(f"{candle}") # Each candle is in format of a dictionary 
-    
-if __name__ == '__main__':
-    ssid = input('Please enter your ssid: ')
-    asyncio.run(main(ssid))
-    
+
+SSID = '42["auth",{"session":"a:4:{s:10:\\"session_id\\";s:32:\\"1f0727efe11eca3deff98a709d0a9678\\";s:10:\\"ip_address\\";s:15:\\"217.196.163.237\\";s:10:\\"user_agent\\";s:117:\\"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36\\";s:13:\\"last_activity\\";i:1772491534;}c22ef6f61cc271c2bc8cc8be07f145d4","isDemo":0,"uid":125821224,"platform":1,"isFastHistory":true,"isOptimized":true}]'
+
+
+
+
+async def main():
+    async with PocketOptionAsync(SSID) as api:
+        assets = await api.active_assets()
+        regular = [a for a in assets if not a.get("is_otc")]
+        print(f"Звичайних пар: {len(regular)}")
+        for a in regular:
+            print(a["symbol"], a["is_active"])
+
+asyncio.run(main())
+
