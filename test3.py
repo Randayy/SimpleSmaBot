@@ -406,7 +406,7 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
 async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
                                symbol: str, direction: str,
                                entry_price: float, timeframe: int):
-    await asyncio.sleep(timeframe)
+    await asyncio.sleep(min(timeframe, 300))  # макс 5 хв
     try:
         exit_price = await get_current_price(symbol)
         context.user_data["active_signal"] = None
@@ -756,10 +756,11 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
     timeframe = sig["timeframe"]
     symbol = sig["symbol"]
 
+    timeout = min(timeframe, 300)  # макс 5 хв
     context.user_data["active_signal"] = {
         "symbol": symbol, "direction": sig["direction"],
         "entry_price": entry_price,
-        "end_time": datetime.now() + timedelta(seconds=timeframe)
+        "end_time": datetime.now() + timedelta(seconds=timeout)
     }
 
     # Фото пари + напрямок
@@ -1081,28 +1082,49 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data in ("sig_request", "sig_bezdelnik"):
         blocked, rem = check_active_signal(context)
         if blocked:
-            await query.message.edit_text(
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                ]])
-            )
+            try:
+                await query.message.edit_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
+            except Exception:
+                await query.message.reply_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
             return
         mode = data.replace("sig_", "")
-        await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
+        try:
+            await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
+        except Exception:
+            await query.message.reply_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
 
     # ── АВТО ШІ → відразу рандомна пара і таймфрейм ──
     elif data == "sig_auto":
         blocked, rem = check_active_signal(context)
         if blocked:
-            await query.message.edit_text(
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                ]])
-            )
+            try:
+                await query.message.edit_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
+            except Exception:
+                await query.message.reply_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
             return
         assets = apply_otc_filter(await fetch_assets(), context)
         high = [a for a in assets if a.get("payout", 0) >= 83]
@@ -1119,15 +1141,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "sig_indicators":
         blocked, rem = check_active_signal(context)
         if blocked:
-            await query.message.edit_text(
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                ]])
-            )
+            try:
+                await query.message.edit_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
+            except Exception:
+                await query.message.reply_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
             return
-        await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
+        try:
+            await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
+        except Exception:
+            await query.message.reply_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
 
     # ── Вибір типу активу ──
     elif data.startswith("atype_"):
@@ -1178,13 +1212,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("pair_"):
         blocked, rem = check_active_signal(context)
         if blocked:
-            await query.message.edit_text(
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                ]])
-            )
+            try:
+                await query.message.edit_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
+            except Exception:
+                await query.message.reply_text(
+                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                    parse_mode="Markdown",
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    ]])
+                )
             return
         parts = data.split("_", 2)
         mode = parts[1]
