@@ -3,7 +3,9 @@ import os
 import re
 import random
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+UA_TZ = timezone(timedelta(hours=3))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
@@ -27,6 +29,7 @@ DEPOSIT_PATH = "deposited_accounts.json"
 STATS_PATH = "stats.json"
 BINDINGS_PATH = "id_bindings.json"
 USERS_PATH = "all_users.json"
+OTC_SETTINGS_PATH = "otc_settings.json"
 
 ADMIN_IDS = [452052752,8337970493,6704855261]
 ALLOWED_USERS_PATH = "allowed_users_bezdelnik.json"
@@ -94,11 +97,22 @@ def load_deposits(): return load_json(DEPOSIT_PATH, {})
 def load_stats(): return load_json(STATS_PATH, {})
 def load_all_users(): return load_json(USERS_PATH, {})
 
-def track_user(tg_id: int):
-    """Зберігає tg_id + дату останньої взаємодії"""
+def track_user(tg_id: int) -> bool:
+    """Зберігає tg_id + дату останньої взаємодії. Повертає True якщо юзер новий."""
     users = load_all_users()
-    users[str(tg_id)] = datetime.now().isoformat()
+    uid = str(tg_id)
+    is_new = uid not in users
+    now = datetime.now(UA_TZ).isoformat()
+    if is_new:
+        users[uid] = {"first_seen": now, "last_seen": now}
+    else:
+        # Міграція старого формату (рядок → dict)
+        if isinstance(users[uid], str):
+            users[uid] = {"first_seen": users[uid], "last_seen": now}
+        else:
+            users[uid]["last_seen"] = now
     save_json(USERS_PATH, users)
+    return is_new
 
 def load_allowed_users():
     data = load_json(ALLOWED_USERS_PATH, {})
@@ -115,7 +129,7 @@ def get_user_stats(tg_id: int) -> dict:
     uid = str(tg_id)
     if uid not in stats:
         stats[uid] = {"total": 0, "profit": 0, "loss": 0, "draw": 0,
-                      "joined": datetime.now().strftime("%Y-%m-%d")}
+                      "joined": datetime.now(UA_TZ).strftime("%Y-%m-%d")}
         save_json(STATS_PATH, stats)
     s = stats[uid]
     # Додаємо відсутні поля для старих записів
@@ -129,7 +143,7 @@ def update_user_stats(tg_id: int, result: str):
     uid = str(tg_id)
     if uid not in stats:
         stats[uid] = {"total": 0, "profit": 0, "loss": 0, "draw": 0,
-                      "joined": datetime.now().strftime("%Y-%m-%d")}
+                      "joined": datetime.now(UA_TZ).strftime("%Y-%m-%d")}
     for key in ("total", "profit", "loss", "draw"):
         if key not in stats[uid]:
             stats[uid][key] = 0
@@ -214,8 +228,22 @@ def filter_by_asset_type(assets: list, atype: str) -> list:
         filtered = [a for a in filtered if _is_crypto_name(a.get("name", ""))]
     return filtered
 
-def get_otc_enabled(context) -> bool:
-    return context.user_data.get("otc_enabled", True)
+def get_otc_enabled(context, tg_id: int = None) -> bool:
+    # Спочатку перевіряємо context (швидко)
+    if "otc_enabled" in context.user_data:
+        return context.user_data["otc_enabled"]
+    # Якщо немає в context — читаємо з файлу (після рестарту бота)
+    if tg_id:
+        settings = load_json(OTC_SETTINGS_PATH, {})
+        val = settings.get(str(tg_id), True)
+        context.user_data["otc_enabled"] = val
+        return val
+    return True
+
+def save_otc_enabled(tg_id: int, enabled: bool):
+    settings = load_json(OTC_SETTINGS_PATH, {})
+    settings[str(tg_id)] = enabled
+    save_json(OTC_SETTINGS_PATH, settings)
 
 def apply_otc_filter(assets: list, context) -> list:
     if get_otc_enabled(context):
@@ -486,7 +514,7 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
             f"💲 Ціна виходу:  `{fmt_price(exit_price)}`\n"
             f"📊 Різниця: `{fmt_price(diff)}`\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
-            f"🕐 {datetime.now().strftime('%H:%M:%S')}"
+            f"🕐 {datetime.now(UA_TZ).strftime('%H:%M:%S')}"
         )
         img_path = "imgs/start_imgs/плюс.png" if result == "profit" else "imgs/start_imgs/мінус.png"
         try:
@@ -532,7 +560,7 @@ def format_signal(sig: dict) -> str:
         f"💱 *{sig['name']}* (`{sig['symbol']}`)\n"
         f"🏷 Тип:            `{pair_type}`\n"
         f"📈 Напрямок:    *{sig['direction']}*\n"
-        f"⏱ Таймфрейм:  `{fmt_tf(sig['timeframe'])}`\n"
+        f"⏱ Час експірації: `{fmt_tf(sig['timeframe'])}`\n"
         f"💯 Впевненість: `{sig['confidence']}%`\n"
         f"💰 Виплата:      `{sig['payout']}%`\n"
         f"🤖 Метод:         `{sig['type']}`\n"
@@ -552,7 +580,7 @@ def format_signal(sig: dict) -> str:
         text += f"📊 Stoch: `{sig['stoch']}`\n"
     if "bb" in sig:
         text += f"📊 BB: `{sig['bb']}`\n"
-    text += f"━━━━━━━━━━━━━━━━━━━\n🕐 {datetime.now().strftime('%H:%M:%S')}"
+    text += f"━━━━━━━━━━━━━━━━━━━\n🕐 {datetime.now(UA_TZ).strftime('%H:%M:%S')}"
     return text
 
 
@@ -577,7 +605,7 @@ def main_menu_kb(otc: bool, tg_id: int = 0) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 def main_menu(context, tg_id: int = 0) -> InlineKeyboardMarkup:
-    return main_menu_kb(get_otc_enabled(context), tg_id)
+    return main_menu_kb(get_otc_enabled(context, tg_id), tg_id)
 
 def asset_type_kb(mode: str) -> InlineKeyboardMarkup:
     rows = []
@@ -743,8 +771,8 @@ def check_active_signal(context) -> tuple[bool, int]:
     if not active:
         return False, 0
     end_time = active.get("end_time")
-    if end_time and datetime.now() < end_time:
-        remaining = int((end_time - datetime.now()).total_seconds())
+    if end_time and datetime.now(UA_TZ) < end_time:
+        remaining = int((end_time - datetime.now(UA_TZ)).total_seconds())
         return True, remaining
     context.user_data["active_signal"] = None
     return False, 0
@@ -827,7 +855,7 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
     context.user_data["active_signal"] = {
         "symbol": symbol, "direction": sig["direction"],
         "entry_price": entry_price,
-        "end_time": datetime.now() + timedelta(seconds=timeout)
+        "end_time": datetime.now(UA_TZ) + timedelta(seconds=timeout)
     }
 
     # Видаляємо повідомлення "Генерую сигнал..."
@@ -957,7 +985,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     elif data == "toggle_otc":
-        context.user_data["otc_enabled"] = not get_otc_enabled(context)
+        new_val = not get_otc_enabled(context, query.from_user.id)
+        context.user_data["otc_enabled"] = new_val
+        save_otc_enabled(query.from_user.id, new_val)
         await query.message.edit_reply_markup(reply_markup=main_menu(context, query.from_user.id))
 
     # ── Реєстрація ──
@@ -1057,20 +1087,42 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if query.from_user.id not in ADMIN_IDS:
             return
         users = load_all_users()
-        now = datetime.now()
+        now = datetime.now(UA_TZ)
         total = len(users)
-        week = sum(1 for d in users.values() if (now - datetime.fromisoformat(d)).days <= 7)
-        month = sum(1 for d in users.values() if (now - datetime.fromisoformat(d)).days <= 30)
+
+        def _parse_dt(s):
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UA_TZ)
+            return dt
+
+        def _get_date(val, key="last_seen"):
+            if isinstance(val, str):
+                return _parse_dt(val)
+            return _parse_dt(val.get(key, val.get("first_seen", now.isoformat())))
+
+        def _get_first(val):
+            return _get_date(val, "first_seen")
+
+        week = sum(1 for d in users.values() if (now - _get_date(d)).days <= 7)
+        month = sum(1 for d in users.values() if (now - _get_date(d)).days <= 30)
+        new_today = sum(1 for d in users.values() if (now - _get_first(d)).days == 0)
+        new_week = sum(1 for d in users.values() if (now - _get_first(d)).days <= 7)
+        new_month = sum(1 for d in users.values() if (now - _get_first(d)).days <= 30)
         activated = len(load_activated())
         deposits = len(load_deposits())
         registered = len(load_accounts())
 
         await safe_edit(query.message,
             f"⚙️ *АДМІН ПАНЕЛЬ*\n\n"
-            f"👥 *Статистика користувачів:*\n"
-            f"├ За 7 днів: `{week}`\n"
-            f"├ За 30 днів: `{month}`\n"
+            f"👥 *Натиснули /start:*\n"
+            f"├ Нових сьогодні: `{new_today}`\n"
+            f"├ Нових за 7 днів: `{new_week}`\n"
+            f"├ Нових за 30 днів: `{new_month}`\n"
             f"└ Всього: `{total}`\n\n"
+            f"🔄 *Активні:*\n"
+            f"├ За 7 днів: `{week}`\n"
+            f"├ За 30 днів: `{month}`\n\n"
             f"📊 *Воронка:*\n"
             f"├ Зареєстровані: `{registered}`\n"
             f"├ З депозитом: `{deposits}`\n"
@@ -1317,7 +1369,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         s = get_user_stats(tg_id)
         percentile = get_activity_percentile(tg_id)
         try:
-            days = (datetime.now() - datetime.strptime(s["joined"], "%Y-%m-%d")).days
+            days = (datetime.now(UA_TZ) - datetime.strptime(s["joined"], "%Y-%m-%d")).days
         except Exception:
             days = 0
         text = (
@@ -1372,7 +1424,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # ── Ліміт 20 повідомлень на день ──
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = datetime.now(UA_TZ).strftime("%Y-%m-%d")
         ai_day = context.user_data.get("ai_chat_day", "")
         ai_count = context.user_data.get("ai_chat_count", 0)
         if ai_day != today:
@@ -1557,7 +1609,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # ── Ліміт ──
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(UA_TZ).strftime("%Y-%m-%d")
     ai_day = context.user_data.get("ai_chat_day", "")
     ai_count = context.user_data.get("ai_chat_count", 0)
     if ai_day != today:
