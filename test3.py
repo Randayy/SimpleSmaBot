@@ -36,6 +36,7 @@ ALLOWED_USERS_PATH = "allowed_users_bezdelnik.json"
 
 ASKING_ID = "asking_id"
 BROADCAST_MODE = "broadcast_mode"
+ADDING_USER_MODE = "adding_user_mode"
 AI_CHAT_MODE = "ai_chat_mode"
 WORKING_TIMEFRAMES = [60, 120, 180, 300, 600, 900, 1800, 3600]
 
@@ -1130,6 +1131,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("📢 РОЗСИЛКА", callback_data="admin_broadcast")],
+                [InlineKeyboardButton("➕ ДОДАТИ ЮЗЕРА", callback_data="admin_add_user")],
                 [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")],
             ])
         )
@@ -1141,6 +1143,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(query.message,
             "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — "
             "бот розішле його всім користувачам.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
+            ])
+        )
+
+    elif data == "admin_add_user":
+        if query.from_user.id not in ADMIN_IDS:
+            return
+        context.user_data[ADDING_USER_MODE] = True
+        await safe_edit(query.message,
+            "➕ *Додати юзера*\n\nНадішли Telegram ID користувача — "
+            "бот додасть його в allowed\_users та активує бота.",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
@@ -1524,6 +1539,43 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "⚠️ Щось пішло не так, спробуй ще раз.",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                ])
+            )
+        return
+
+    if context.user_data.get(ADDING_USER_MODE):
+        context.user_data[ADDING_USER_MODE] = False
+        user_input = update.message.text.strip()
+        # Підтримка кількох ID через пробіл, кому або новий рядок
+        raw_ids = re.split(r"[\s,]+", user_input)
+        added = []
+        failed = []
+        for raw in raw_ids:
+            digits = "".join(ch for ch in raw if ch.isdigit())
+            if not digits:
+                continue
+            uid = int(digits)
+            # Додаємо в allowed_users
+            data = load_json(ALLOWED_USERS_PATH, {"allowed_tg_ids": []})
+            if uid not in data["allowed_tg_ids"]:
+                data["allowed_tg_ids"].append(uid)
+                save_json(ALLOWED_USERS_PATH, data)
+            # Активуємо бота
+            save_activated(uid)
+            added.append(str(uid))
+        if added:
+            await update.message.reply_text(
+                f"✅ Додано та активовано: `{'`, `'.join(added)}`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
+                ])
+            )
+        else:
+            await update.message.reply_text(
+                "❌ Не вдалося розпізнати жодного ID. Введіть числовий Telegram ID.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
                 ])
             )
         return
