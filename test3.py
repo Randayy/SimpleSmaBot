@@ -18,7 +18,7 @@ from BinaryOptionsToolsV2.pocketoption import PocketOptionAsync
 TOKEN = "8578407218:AAGE5kM5El_nw0j8O83ErH4VJgMvxbm7rBc"
 SSID = '42["auth",{"session":"0dc1s5l5704vapvmm8oh57nmtm","isDemo":1,"uid":125727409,"platform":1,"isFastHistory":true,"isOptimized":true}]'
 REF_LINK_BASE = "https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100"
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "sk-proj-HWnhX_rfVxbW8j4K8ISZH3YF-Z6PxGzgKIRyv559VmsAzDNlP7kCJisrNOqDO8XJBSswkWpRW0T3BlbkFJq0KjXy_N17hHmLcBwnbnT8zU"
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 JSON_PATH = "registered_accounts.json"
@@ -40,7 +40,7 @@ ASSET_TYPES = [
     ("💱 Форекс", "forex"),
     ("₿ Крипта", "crypto"),
     ("📈 Акції", "stock"),
-    ("🛢 Товари", "commodity"),
+    ("🛢 Сировина", "commodity"),
     ("📊 Індекси", "index"),
 ]
 
@@ -150,15 +150,46 @@ def get_activity_percentile(tg_id: int) -> int:
 
 
 # ─── ПАРИ ──────────────────────────────────────────────────────
+BLOCKED_ASSETS = {"syp/usd otc", "irr/usd otc", "usd/rub otc", "eur/rub otc",
+                  "syp/usd", "irr/usd", "usd/rub", "eur/rub"}
+
+_assets_cache = {"data": [], "ts": 0}
+_assets_lock = asyncio.Lock()
+
 async def fetch_assets() -> list:
-    try:
-        async with PocketOptionAsync(SSID) as api:
-            assets = await api.active_assets()
-            active = [a for a in assets if a.get("is_active")]
-            return sorted(active, key=lambda x: x.get("payout", 0), reverse=True)
-    except Exception as e:
-        print(f"fetch_assets error: {e}")
-        return []
+    now = asyncio.get_event_loop().time()
+    # Кеш на 30 сек — щоб 100 юзерів одночасно не створювали 100 з'єднань
+    if _assets_cache["data"] and (now - _assets_cache["ts"]) < 30:
+        return _assets_cache["data"]
+    async with _assets_lock:
+        # Перевіряємо ще раз після отримання локу
+        now2 = asyncio.get_event_loop().time()
+        if _assets_cache["data"] and (now2 - _assets_cache["ts"]) < 30:
+            return _assets_cache["data"]
+        try:
+            async with PocketOptionAsync(SSID) as api:
+                assets = await api.active_assets()
+                active = [a for a in assets if a.get("is_active")
+                          and a.get("name", "").lower() not in BLOCKED_ASSETS]
+                result = sorted(active, key=lambda x: x.get("payout", 0), reverse=True)
+                _assets_cache["data"] = result
+                _assets_cache["ts"] = now2
+                return result
+        except Exception as e:
+            print(f"fetch_assets error: {e}")
+            return _assets_cache["data"] or []
+
+CRYPTO_KEYWORDS = {
+    "bitcoin", "btc", "ethereum", "eth", "litecoin", "ltc", "ripple", "xrp",
+    "cardano", "ada", "polkadot", "dot", "chainlink", "link", "dogecoin", "doge",
+    "solana", "sol", "avalanche", "avax", "polygon", "matic", "tron", "trx",
+    "toncoin", "ton", "bnb", "bch", "dash", "eos", "iota", "monero", "xmr",
+    "stellar", "xlm", "tezos", "xtz", "uniswap", "uni", "coinbase",
+}
+
+def _is_crypto_name(name: str) -> bool:
+    lower = name.lower()
+    return any(kw in lower for kw in CRYPTO_KEYWORDS)
 
 def filter_by_asset_type(assets: list, atype: str) -> list:
     mapping = {
@@ -171,16 +202,25 @@ def filter_by_asset_type(assets: list, atype: str) -> list:
     t = mapping.get(atype)
     if not t:
         return assets
-    filtered = [a for a in assets if a.get("asset_type") == t]
-    return filtered if filtered else assets
+    filtered = [a for a in assets if a.get("asset_type") == t or a.get("type") == t]
+    if not filtered:
+        lower_t = t.lower()
+        filtered = [a for a in assets if lower_t in str(a.get("asset_type", "")).lower()
+                    or lower_t in str(a.get("type", "")).lower()]
+    # Не показувати крипту у форексі і навпаки
+    if atype == "forex":
+        filtered = [a for a in filtered if not _is_crypto_name(a.get("name", ""))]
+    elif atype == "crypto":
+        filtered = [a for a in filtered if _is_crypto_name(a.get("name", ""))]
+    return filtered
 
 def get_otc_enabled(context) -> bool:
     return context.user_data.get("otc_enabled", True)
 
 def apply_otc_filter(assets: list, context) -> list:
-    if not get_otc_enabled(context):
-        return [a for a in assets if not a.get("is_otc")]
-    return assets
+    if get_otc_enabled(context):
+        return [a for a in assets if a.get("is_otc")]
+    return [a for a in assets if not a.get("is_otc")]
 
 
 # ─── ЦІНА ──────────────────────────────────────────────────────
@@ -222,7 +262,11 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
         else:                    count = 100000
 
         async with PocketOptionAsync(SSID) as api:
-            candles = await api.get_candles(symbol, timeframe, count)
+            try:
+                candles = await api.get_candles(symbol, timeframe, count)
+            except Exception as ce:
+                print(f"get_candles error {symbol}: {ce}")
+                return {"error": f"Помилка отримання даних для {asset['name']}"}
             current_price = None
             try:
                 stream = await api.subscribe_symbol(symbol)
@@ -234,8 +278,8 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
             except Exception as pe:
                 print(f"Price error {symbol}: {pe}")
 
-        if len(candles) < 14:
-            raise ValueError(f"Мало даних: {len(candles)}")
+        if not candles or len(candles) < 14:
+            raise ValueError(f"Мало даних: {len(candles) if candles else 0}")
 
         df = pd.DataFrame(candles)
         df["close"] = df["close"].astype(float)
@@ -297,7 +341,13 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
             direction = "🔴 SELL"
             confidence = min(95, 55 + sell_score * 8)
         else:
-            direction = random.choice(["🟢 BUY", "🔴 SELL"])
+            # При нічиї — визначаємо напрямок по останній свічці (не рандом)
+            last_close = df["close"].iloc[-1]
+            last_open = df["open"].iloc[-1]
+            if last_close >= last_open:
+                direction = "🟢 BUY"
+            else:
+                direction = "🔴 SELL"
             confidence = 60
 
         return {
@@ -323,7 +373,11 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
         else:                    count = 30000
 
         async with PocketOptionAsync(SSID) as api:
-            candles = await api.get_candles(symbol, timeframe, count)
+            try:
+                candles = await api.get_candles(symbol, timeframe, count)
+            except Exception as ce:
+                print(f"get_candles error {symbol}: {ce}")
+                return {"error": f"Помилка отримання даних для {asset['name']}"}
             current_price = None
             try:
                 stream = await api.subscribe_symbol(symbol)
@@ -335,7 +389,7 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
             except Exception:
                 pass
 
-        if len(candles) < 10:
+        if not candles or len(candles) < 10:
             raise ValueError("Мало даних")
 
         df = pd.DataFrame(candles)
@@ -471,7 +525,7 @@ def fmt_tf(seconds: int) -> str:
     else:               return f"{seconds // 3600} год"
 
 def format_signal(sig: dict) -> str:
-    pair_type = "OTC 🔄" if sig.get("is_otc") else "Regular 📈"
+    pair_type = "OTC 🔄" if sig.get("is_otc") else "Official 📈"
     text = (
         f"📊 *СИГНАЛ BEZDELNIK*\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
@@ -662,6 +716,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def safe_edit(message, text, **kwargs):
+    """edit_text з fallback: видаляє старе повідомлення і надсилає нове"""
+    try:
+        await message.edit_text(text, **kwargs)
+    except Exception:
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        await message.chat.send_message(text, **kwargs)
+
+
+async def safe_edit_photo(message, photo_path, caption="", **kwargs):
+    """Для меню з фото: видаляє старе і шле нове фото"""
+    try:
+        await message.delete()
+    except Exception:
+        pass
+    await message.chat.send_photo(photo=open(photo_path, "rb"), caption=caption, **kwargs)
+
+
 def check_active_signal(context) -> tuple[bool, int]:
     """Повертає (заблоковано, секунд залишилось)"""
     active = context.user_data.get("active_signal")
@@ -675,24 +750,38 @@ def check_active_signal(context) -> tuple[bool, int]:
     return False, 0
 
 
+# Маппінг: asset_type → {True: [otc папки], False: [regular папки]}
 ASSET_TYPE_TO_IMG_FOLDER = {
-    "currency": ["forex official", "forex otc"],
-    "cryptocurrency": ["crypto"],
-    "stock": ["stocks"],
-    "commodity": ["commodities"],
-    "index": ["index"],
+    "currency":       {True: ["forex otc"], False: ["forex official"]},
+    "cryptocurrency": {True: ["crypto/otc"], False: ["crypto/regular"]},
+    "stock":          {True: ["stocks/otc"], False: ["stocks/regular"]},
+    "commodity":      {True: ["commodities/otc"], False: ["commodities/regular"]},
+    "index":          {True: ["index/otc"], False: ["index/regular"]},
 }
 
 def _normalize_name(name: str) -> str:
-    """Нормалізує назву: прибирає слеші, підкреслення, зайві пробіли, OTC суфікси"""
+    """Нормалізує назву: прибирає все зайве для порівняння"""
     n = name.upper().strip()
-    # Прибираємо _otc, (OTC) і т.д. — OTC визначаємо з is_otc
     for suf in ("_OTC", " OTC", "(OTC)"):
         n = n.replace(suf, "")
-    # Замінюємо роздільники на пробіли
-    n = n.replace("/", " ").replace("_", " ").replace("-", " ")
-    # Прибираємо зайві пробіли
-    return " ".join(n.split())
+    n = n.replace("/", "").replace("_", "").replace("-", "")
+    n = n.replace("&", "").replace("'", "").replace("`", "").replace("\u2019", "")
+    n = re.sub(r'\s+', '', n)
+    return n
+
+
+def _normalize_fname(fname: str) -> str:
+    """Нормалізує ім'я файлу для порівняння"""
+    n = fname.upper()
+    for ext in (".PNG", ".JPG", ".JPEG"):
+        n = n.replace(ext, "")
+    # Розліплюємо злиті слова
+    n = re.sub(r'(\w)OTC', r'\1 OTC', n)
+    n = re.sub(r'(\w)DOWN', r'\1 DOWN', n)
+    n = re.sub(r'(\w)UP\b', r'\1 UP', n)
+    n = " ".join(n.split()).strip()
+    n = re.sub(r'\s*-\d+$', '', n).strip()
+    return n
 
 
 def find_signal_image(asset: dict, direction: str) -> str | None:
@@ -702,51 +791,29 @@ def find_signal_image(asset: dict, direction: str) -> str | None:
     asset_type = asset.get("asset_type", "")
     up_down = "UP" if "BUY" in direction else "DOWN"
 
-    folders = ASSET_TYPE_TO_IMG_FOLDER.get(asset_type, [])
+    type_map = ASSET_TYPE_TO_IMG_FOLDER.get(asset_type, {})
+    # Спочатку шукаємо в правильній папці (otc/regular), потім фолбек на іншу
+    folders = type_map.get(is_otc, []) + type_map.get(not is_otc, [])
 
     for folder in folders:
         img_dir = os.path.join("imgs", folder)
         if not os.path.isdir(img_dir):
             continue
         for fname in os.listdir(img_dir):
-            fname_clean = fname.upper()
-            for ext in (".PNG", ".JPG", ".JPEG"):
-                fname_clean = fname_clean.replace(ext, "")
-            fname_clean = fname_clean.strip()
-
-            # Точний матч з OTC: "USD PKR OTC UP"
-            if is_otc and fname_clean == f"{name} OTC {up_down}":
-                return os.path.join(img_dir, fname)
-            # Точний матч без OTC: "USD PKR UP"
-            if fname_clean == f"{name} {up_down}":
-                return os.path.join(img_dir, fname)
-
-    # Фолбек: шукаємо часткове співпадіння
-    for folder in folders:
-        img_dir = os.path.join("imgs", folder)
-        if not os.path.isdir(img_dir):
-            continue
-        for fname in os.listdir(img_dir):
-            fname_upper = fname.upper()
-            # Перевіряємо чи назва починається з нашого name і містить правильний напрямок
-            fname_no_ext = fname_upper.replace(".PNG", "").replace(".JPG", "").strip()
-            if fname_no_ext.startswith(name) and fname_no_ext.endswith(up_down):
-                if is_otc and "OTC" in fname_no_ext:
-                    return os.path.join(img_dir, fname)
-                if not is_otc and "OTC" not in fname_no_ext:
-                    return os.path.join(img_dir, fname)
-
-    # Останній фолбек: OTC/не-OTC без розрізнення
-    for folder in folders:
-        img_dir = os.path.join("imgs", folder)
-        if not os.path.isdir(img_dir):
-            continue
-        for fname in os.listdir(img_dir):
-            fname_no_ext = fname.upper().replace(".PNG", "").replace(".JPG", "").strip()
-            if fname_no_ext.startswith(name) and fname_no_ext.endswith(up_down):
+            fc = _normalize_fname(fname)
+            # Розділяємо: "APPLE OTC UP" → name_part="APPLE OTC", direction="UP"
+            parts = fc.rsplit(" ", 1)
+            if len(parts) != 2 or parts[1] not in ("UP", "DOWN"):
+                continue
+            if parts[1] != up_down:
+                continue
+            # Прибираємо OTC з імені файлу і нормалізуємо
+            f_base = parts[0].replace(" OTC", "").strip()
+            f_base = f_base.replace("&", "").replace("'", "").replace("`", "")
+            f_base = re.sub(r'\s+', '', f_base)
+            if f_base == name:
                 return os.path.join(img_dir, fname)
 
-    print(f"[IMG] No image found for: name={name}, otc={is_otc}, type={asset_type}, dir={up_down}")
     return None
 
 
@@ -763,18 +830,27 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
         "end_time": datetime.now() + timedelta(seconds=timeout)
     }
 
+    # Видаляємо повідомлення "Генерую сигнал..."
+    try:
+        await query.message.delete()
+    except Exception:
+        pass
+
     # Фото пари + напрямок
+    chat_id = query.message.chat_id
     img_path = find_signal_image(asset, sig["direction"])
     if img_path:
-        await query.message.reply_photo(
+        await context.bot.send_photo(
+            chat_id=chat_id,
             photo=open(img_path, "rb"),
             caption=format_signal(sig),
             parse_mode="Markdown",
             reply_markup=after_signal_kb()
         )
     else:
-        await query.message.reply_text(
-            format_signal(sig), parse_mode="Markdown", reply_markup=after_signal_kb()
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=format_signal(sig), parse_mode="Markdown", reply_markup=after_signal_kb()
         )
 
     if entry_price:
@@ -793,56 +869,52 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Головне меню ──
     if data == "to_main_menu":
         context.user_data[AI_CHAT_MODE] = False
-        try:
-            await query.message.edit_text(
-                "🏠 *BEZDELNIK BOT* — Головне меню:",
-                parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
-            )
-        except Exception:
-            await query.message.reply_text(
-                "🏠 *BEZDELNIK BOT* — Головне меню:",
-                parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
-            )
+        await safe_edit(query.message,
+            "🏠 *BEZDELNIK BOT* — Головне меню:",
+            parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
+        )
 
     elif data == "to_start":
         context.user_data[AI_CHAT_MODE] = False
-        await query.message.reply_photo(
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        await query.message.chat.send_photo(
             photo=open("imgs/start_imgs/start.png", "rb"),
-        )
-        await query.message.reply_text(
-            "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
-            "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
-            "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
-            "💡 <b>Що таке BEZDELNIK?</b>\n"
-            "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
-            "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
-            "Поки інші думають — ти вже заробляєш.\n\n"
-            "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
-            "✅ Гнучкі стратегії — обираєш підхід, бот адаптується під твій стиль\n"
-            "✅ Перевірені торгові пари — лише ліквідні та стабільні активи\n"
-            "✅ Сигнали цілодобово — прибутковість до 90% навіть у нічні години\n"
-            "✅ Розумні точки входу — алгоритм сам визначає найкращий момент\n"
-            "✅ Зв'язка з TradingView — повноцінний аналіз + графіки до кожного сигналу\n"
-            "✅ Вибір таймфрейму — від 5 секунд до 4 годин на твій розсуд\n"
-            "✅ Усі класи активів — Форекс, Криптовалюта, Акції, Індекси, Сировина\n"
-            "✅ Живий трекінг результатів — статистика по кожному сигналу за добу та тиждень\n\n"
-            "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок.\n"
-            "Дій впевнено. Торгуй розумно. Заробляй системно.\n\n"
-            "Крім самого бота, ти також отримуєш доступ до всього закритого контенту від BEZDELNIK!",
+            caption=(
+                "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
+                "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
+                "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
+                "💡 <b>Що таке BEZDELNIK?</b>\n"
+                "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
+                "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
+                "Поки інші думають — ти вже заробляєш.\n\n"
+                "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
+                "✅ Гнучкі стратегії\n"
+                "✅ Перевірені торгові пари\n"
+                "✅ Сигнали цілодобово\n"
+                "✅ Розумні точки входу\n"
+                "✅ Зв'язка з TradingView\n"
+                "✅ Вибір таймфрейму\n"
+                "✅ Усі класи активів\n"
+                "✅ Живий трекінг результатів\n\n"
+                "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок."
+            ),
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🤖 ОТРИМАТИ РОБОТА", callback_data="get_bot")],
-            [
-                InlineKeyboardButton("💬 ДОПОМОГА", url="https://t.me/NazarUkrain"),
-                InlineKeyboardButton("⭐ ВІДГУКИ", url="https://t.me/+Hw8LxioNOIJiN2Qy"),
-            ],
-            [InlineKeyboardButton("📢 КАНАЛ", url="https://t.me/+6ejF11uYS6c3MzFi")],
-        ])
+                [InlineKeyboardButton("🤖 ОТРИМАТИ РОБОТА", callback_data="get_bot")],
+                [
+                    InlineKeyboardButton("💬 ДОПОМОГА", url="https://t.me/NazarUkrain"),
+                    InlineKeyboardButton("⭐ ВІДГУКИ", url="https://t.me/+Hw8LxioNOIJiN2Qy"),
+                ],
+                [InlineKeyboardButton("📢 КАНАЛ", url="https://t.me/+6ejF11uYS6c3MzFi")],
+            ])
         )
 
     # ── Стартові кнопки ──
     elif data == "get_bot":
-        await query.message.reply_text(
+        await safe_edit(query.message,
             "Отже, розберемо по кроках. Для того щоб активувати торгового бота "
             "та отримати доступ до ком'юніті BEZDELNIK, тобі потрібен активний акаунт "
             "на Pocket Option (реєстрація + поповнення рахунку) — обов'язково через "
@@ -863,7 +935,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif data == "help_contact":
-        await query.message.reply_text(
+        await safe_edit(query.message,
             "💬 *Потрібна допомога?*\n\nНапиши нам:",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -873,7 +945,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif data == "reviews":
-        await query.message.reply_text(
+        await safe_edit(query.message,
             "⭐ *Відгуки наших користувачів:*\n\nСкоро тут будуть відгуки!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
@@ -891,8 +963,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ── Реєстрація ──
     elif data == "check_id":
         context.user_data[ASKING_ID] = True
-        await query.message.reply_photo(
-            photo=open("imgs/start_imgs/id_get1.jpg", "rb"),
+        await safe_edit_photo(query.message, "imgs/start_imgs/id_get1.jpg",
             caption=(
                 "Після успішної реєстрації у твоєму профілі Pocket Option "
                 "буде відображатись унікальний номер акаунту (ID) ❕\n\n"
@@ -914,7 +985,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         uid = context.user_data.get("last_user_id")
         deposits = load_deposits()
         if uid and uid in deposits:
-            await query.message.reply_text(
+            await safe_edit(query.message,
                 "🎉 *Вітаємо у BEZDELNIK!*\n"
                 "Доступ до торгового бота та VIP-матеріалів — відкрито!\n\n"
                 "Тепер ти можеш приєднатись до нашого ком'юніті, де на тебе чекає:\n"
@@ -952,60 +1023,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("🔘 ПЕРЕВІРИТИ ДЕПОЗИТ", callback_data="check_deposit")],
                 [InlineKeyboardButton("⬅️ Назад", callback_data="check_id")]
             ])
-            try:
-                await query.message.edit_text("❌ Депозиту ще не зафіксовано", reply_markup=back_kb)
-            except Exception:
-                await query.message.reply_text("❌ Депозиту ще не зафіксовано", reply_markup=back_kb)
+            await safe_edit(query.message, "❌ Депозиту ще не зафіксовано", reply_markup=back_kb)
 
     elif data == "activate_bot":
         save_activated(query.from_user.id)
-        try:
-            await query.message.edit_text(
-                "🎉 Бот активовано!\n\n*BEZDELNIK BOT* — Головне меню:",
-                parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
-            )
-        except Exception:
-            await query.message.reply_text(
-                "🎉 Бот активовано!\n\n*BEZDELNIK BOT* — Головне меню:",
-                parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
-            )
+        await safe_edit(query.message,
+            "🎉 Бот активовано!\n\n*BEZDELNIK BOT* — Головне меню:",
+            parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
+        )
 
     # ── AI ЧАТ ТРЕЙДЕР ──
     elif data == "ai_chat_start":
         context.user_data[AI_CHAT_MODE] = True
         context.user_data["ai_chat_history"] = []
-        try:
-            await query.message.edit_text(
-                "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
-                "Я твій персональний AI-помічник з трейдингу.\n"
-                "Запитуй про:\n"
-                "• Ситуацію на ринку 📊\n"
-                "• Аналіз активів та валютних пар 💹\n"
-                "• Стратегії торгівлі 📈\n"
-                "• Індикатори та патерни 🔍\n"
-                "• Поради для початківців 🎓\n\n"
-                "Просто напиши своє питання 👇",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
-                ])
-            )
-        except Exception:
-            await query.message.reply_text(
-                "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
-                "Я твій персональний AI-помічник з трейдингу.\n"
-                "Запитуй про:\n"
-                "• Ситуацію на ринку 📊\n"
-                "• Аналіз активів та валютних пар 💹\n"
-                "• Стратегії торгівлі 📈\n"
-                "• Індикатори та патерни 🔍\n"
-                "• Поради для початківців 🎓\n\n"
-                "Просто напиши своє питання 👇",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
-                ])
-            )
+        await safe_edit(query.message,
+            "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
+            "Я твій персональний AI-помічник з трейдингу.\n"
+            "Запитуй про:\n"
+            "• Ситуацію на ринку 📊\n"
+            "• Аналіз активів та валютних пар 💹\n"
+            "• Стратегії торгівлі 📈\n"
+            "• Індикатори та патерни 🔍\n"
+            "• Поради для початківців 🎓\n\n"
+            "Просто напиши своє питання 👇",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+            ])
+        )
 
     # ── АДМІН ПАНЕЛЬ ──
     elif data == "admin_panel":
@@ -1020,111 +1065,62 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         deposits = len(load_deposits())
         registered = len(load_accounts())
 
-        try:
-            await query.message.edit_text(
-                f"⚙️ *АДМІН ПАНЕЛЬ*\n\n"
-                f"👥 *Статистика користувачів:*\n"
-                f"├ За 7 днів: `{week}`\n"
-                f"├ За 30 днів: `{month}`\n"
-                f"└ Всього: `{total}`\n\n"
-                f"📊 *Воронка:*\n"
-                f"├ Зареєстровані: `{registered}`\n"
-                f"├ З депозитом: `{deposits}`\n"
-                f"└ Активовані: `{activated}`",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📢 РОЗСИЛКА", callback_data="admin_broadcast")],
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")],
-                ])
-            )
-        except Exception:
-            await query.message.reply_text(
-                f"⚙️ *АДМІН ПАНЕЛЬ*\n\n"
-                f"👥 *Статистика користувачів:*\n"
-                f"├ За 7 днів: `{week}`\n"
-                f"├ За 30 днів: `{month}`\n"
-                f"└ Всього: `{total}`\n\n"
-                f"📊 *Воронка:*\n"
-                f"├ Зареєстровані: `{registered}`\n"
-                f"├ З депозитом: `{deposits}`\n"
-                f"└ Активовані: `{activated}`",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📢 РОЗСИЛКА", callback_data="admin_broadcast")],
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")],
-                ])
-            )
+        await safe_edit(query.message,
+            f"⚙️ *АДМІН ПАНЕЛЬ*\n\n"
+            f"👥 *Статистика користувачів:*\n"
+            f"├ За 7 днів: `{week}`\n"
+            f"├ За 30 днів: `{month}`\n"
+            f"└ Всього: `{total}`\n\n"
+            f"📊 *Воронка:*\n"
+            f"├ Зареєстровані: `{registered}`\n"
+            f"├ З депозитом: `{deposits}`\n"
+            f"└ Активовані: `{activated}`",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📢 РОЗСИЛКА", callback_data="admin_broadcast")],
+                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")],
+            ])
+        )
 
     elif data == "admin_broadcast":
         if query.from_user.id not in ADMIN_IDS:
             return
         context.user_data[BROADCAST_MODE] = True
-        try:
-            await query.message.edit_text(
-                "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — "
-                "бот розішле його всім користувачам.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
-                ])
-            )
-        except Exception:
-            await query.message.reply_text(
-                "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — "
-                "бот розішле його всім користувачам.",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
-                ])
-            )
+        await safe_edit(query.message,
+            "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — "
+            "бот розішле його всім користувачам.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
+            ])
+        )
 
     # ── НА ЗАПИТ / BEZDELNIK AI → вибір типу активу ──
     elif data in ("sig_request", "sig_bezdelnik"):
         blocked, rem = check_active_signal(context)
         if blocked:
-            try:
-                await query.message.edit_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
-            except Exception:
-                await query.message.reply_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
+            await safe_edit(query.message,
+                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                ]])
+            )
             return
         mode = data.replace("sig_", "")
-        try:
-            await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
-        except Exception:
-            await query.message.reply_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
+        await safe_edit(query.message, "📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
 
     # ── АВТО ШІ → відразу рандомна пара і таймфрейм ──
     elif data == "sig_auto":
         blocked, rem = check_active_signal(context)
         if blocked:
-            try:
-                await query.message.edit_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
-            except Exception:
-                await query.message.reply_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
+            await safe_edit(query.message,
+                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                ]])
+            )
             return
         assets = apply_otc_filter(await fetch_assets(), context)
         high = [a for a in assets if a.get("payout", 0) >= 83]
@@ -1132,36 +1128,27 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES]
         timeframe = random.choice(allowed) if allowed else 60
-        await query.message.reply_text("⏳ Генерую сигнал...")
-        await asyncio.sleep(random.randint(5, 10))
-        sig = random_ai_signal(asset, timeframe, await get_current_price(asset["symbol"]))
+        await safe_edit(query.message, "⏳ Генерую сигнал...")
+        await asyncio.sleep(random.uniform(2, 4))
+        sig = await indicator_signal(asset, timeframe, None)
+        sig["type"] = "BEZDELNIK AI 🤖"
+        for k in ("rsi", "ema", "macd", "stoch", "bb"):
+            sig.pop(k, None)
         await send_signal_and_track(query, context, asset, sig, "auto")
 
     # ── ІНДИКАТОРИ → вибір типу активу (без вибору пари) ──
     elif data == "sig_indicators":
         blocked, rem = check_active_signal(context)
         if blocked:
-            try:
-                await query.message.edit_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
-            except Exception:
-                await query.message.reply_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
+            await safe_edit(query.message,
+                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                ]])
+            )
             return
-        try:
-            await query.message.edit_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
-        except Exception:
-            await query.message.reply_text("📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
+        await safe_edit(query.message, "📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
 
     # ── Вибір типу активу ──
     elif data.startswith("atype_"):
@@ -1170,21 +1157,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         atype = parts[2]
         assets = apply_otc_filter(await fetch_assets(), context)
         filtered = filter_by_asset_type(assets, atype)
+
+        if not filtered:
+            await safe_edit(query.message,
+                "❌ Наразі немає доступних активів цього типу.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⬅️ Назад", callback_data=f"sig_{mode}" if mode != "indicators" else "sig_indicators")]
+                ])
+            )
+            return
+
         context.user_data[f"assets_{mode}"] = filtered
 
         if mode == "indicators":
-            # Для ІНДИКАТОРІВ — рандомна пара, одразу вибір таймфрейму
-            asset = random.choice(filtered)
-            context.user_data["ind_asset"] = asset
-            context.user_data["ind_selected"] = []
-            await query.message.edit_text(
-                f"⏱ *{asset['name']}* (`{asset['payout']}%`)\n\nОберіть таймфрейм:",
-                parse_mode="Markdown",
-                reply_markup=tf_only_kb("indicators", asset["symbol"])
+            await safe_edit(query.message,
+                "💱 Оберіть пару:",
+                reply_markup=pair_kb("indicators", filtered, 0)
             )
         else:
-            # НА ЗАПИТ / BEZDELNIK AI → вибір пари
-            await query.message.edit_text(
+            await safe_edit(query.message,
                 "💱 Оберіть пару:",
                 reply_markup=pair_kb(mode, filtered, 0)
             )
@@ -1202,7 +1193,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         asset = random.choice(assets)
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES and c["time"] <= 3600]
-        await query.message.edit_text(
+        await safe_edit(query.message,
             f"⏱ *{asset['name']}* (`{asset['payout']}%`)\n\nОберіть таймфрейм:",
             parse_mode="Markdown",
             reply_markup=timeframe_kb(mode, asset["symbol"], allowed or [60])
@@ -1212,22 +1203,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("pair_"):
         blocked, rem = check_active_signal(context)
         if blocked:
-            try:
-                await query.message.edit_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
-            except Exception:
-                await query.message.reply_text(
-                    f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                    parse_mode="Markdown",
-                    reply_markup=InlineKeyboardMarkup([[
-                        InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
-                    ]])
-                )
+            await safe_edit(query.message,
+                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                ]])
+            )
             return
         parts = data.split("_", 2)
         mode = parts[1]
@@ -1235,11 +1217,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assets = await fetch_assets()
         asset = next((a for a in assets if a["symbol"] == symbol), None)
         if not asset:
-            await query.message.edit_text("❌ Пару не знайдено")
+            await safe_edit(query.message, "❌ Пару не знайдено")
             return
+        if mode == "indicators":
+            context.user_data["ind_asset"] = asset
+            context.user_data["ind_selected"] = []
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES and c["time"] <= 3600]
-        await query.message.edit_text(
+        await safe_edit(query.message,
             f"⏱ *{asset['name']}* (`{asset['payout']}%`)\n\nОберіть таймфрейм:",
             parse_mode="Markdown",
             reply_markup=timeframe_kb(mode, symbol, allowed or [60])
@@ -1258,28 +1243,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Спробуємо з ind_asset
             asset = context.user_data.get("ind_asset")
         if not asset:
-            await query.message.edit_text("❌ Пару не знайдено")
+            await safe_edit(query.message,"❌ Пару не знайдено")
             return
 
         if mode == "indicators":
             # Показуємо вибір індикаторів
             selected = context.user_data.get("ind_selected", [])
             context.user_data["ind_timeframe"] = timeframe
-            await query.message.edit_text(
+            await safe_edit(query.message,
                 f"📊 *{asset['name']}* — `{fmt_tf(timeframe)}`\n\n"
                 f"Оберіть індикатори (або одразу «Отримати сигнал» для всіх):",
                 parse_mode="Markdown",
                 reply_markup=indicator_select_kb(mode, symbol, timeframe, selected)
             )
         elif mode == "bezdelnik":
-            await query.message.edit_text(f"🧠 BEZDELNIK AI аналізує *{asset['name']}*...", parse_mode="Markdown")
+            await safe_edit(query.message,f"🧠 BEZDELNIK AI аналізує *{asset['name']}*...", parse_mode="Markdown")
             sig = await bezdelnik_ai_signal(asset, timeframe)
+            if sig.get("error"):
+                await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="menu")]]))
+                return
             await send_signal_and_track(query, context, asset, sig, mode)
         else:
-            # НА ЗАПИТ → рандомний сигнал (або індикатори залежно від mode)
-            await query.message.edit_text("⏳ Генерую сигнал...")
-            await asyncio.sleep(random.randint(5, 10))
-            sig = random_ai_signal(asset, timeframe, await get_current_price(symbol))
+            # НА ЗАПИТ → аналіз через індикатори (всі), але показуємо як AI
+            await safe_edit(query.message,"⏳ Генерую сигнал...")
+            await asyncio.sleep(random.uniform(2, 4))
+            sig = await indicator_signal(asset, timeframe, None)
+            sig["type"] = "BEZDELNIK AI 🤖"
+            for k in ("rsi", "ema", "macd", "stoch", "bb"):
+                sig.pop(k, None)
             await send_signal_and_track(query, context, asset, sig, mode)
 
     # ── Вибір індикаторів ──
@@ -1310,11 +1301,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not asset:
             asset = context.user_data.get("ind_asset")
         if not asset:
-            await query.message.edit_text("❌ Пару не знайдено")
+            await safe_edit(query.message,"❌ Пару не знайдено")
             return
 
-        await query.message.edit_text(f"⏳ Аналізую *{asset['name']}*...", parse_mode="Markdown")
+        await safe_edit(query.message,f"⏳ Аналізую *{asset['name']}*...", parse_mode="Markdown")
         sig = await indicator_signal(asset, timeframe, indicators)
+        if sig.get("error"):
+            await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="menu")]]))
+            return
         await send_signal_and_track(query, context, asset, sig, mode)
 
     # ── Мої сигнали ──
@@ -1337,7 +1331,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"*Рейтинг активності:*\n"
             f"📊 Ви активніші, ніж `{percentile}%` учасників!"
         )
-        await query.message.edit_text(
+        await safe_edit(query.message,
             text, parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1662,7 +1656,7 @@ async def join_request_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(ChatJoinRequestHandler(join_request_handler))
     app.add_handler(CallbackQueryHandler(button_handler))
