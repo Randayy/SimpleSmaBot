@@ -489,7 +489,7 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
 async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
                                symbol: str, direction: str,
                                entry_price: float, timeframe: int):
-    await asyncio.sleep(min(timeframe, 300))  # макс 5 хв
+    await asyncio.sleep(timeframe)
     try:
         exit_price = await get_current_price(symbol)
         context.user_data["active_signal"] = None
@@ -852,11 +852,11 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
     timeframe = sig["timeframe"]
     symbol = sig["symbol"]
 
-    timeout = min(timeframe, 300)  # макс 5 хв
+    block_time = min(timeframe, 300)  # блокування нових сигналів — макс 5 хв
     context.user_data["active_signal"] = {
         "symbol": symbol, "direction": sig["direction"],
         "entry_price": entry_price,
-        "end_time": datetime.now(UA_TZ) + timedelta(seconds=timeout)
+        "end_time": datetime.now(UA_TZ) + timedelta(seconds=block_time)
     }
 
     # Видаляємо повідомлення "Генерую сигнал..."
