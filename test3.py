@@ -5,7 +5,7 @@ import random
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-UA_TZ = timezone(timedelta(hours=3))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
+UA_TZ = timezone(timedelta(hours=2))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
@@ -70,8 +70,10 @@ def load_json(path, default):
         return default
 
 def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)  # атомарна заміна — не зламає файл при крашу
 
 def load_bindings(): return load_json(BINDINGS_PATH, {})
 
@@ -181,15 +183,17 @@ async def fetch_assets() -> list:
         now2 = asyncio.get_event_loop().time()
         if _assets_cache["data"] and (now2 - _assets_cache["ts"]) < 30:
             return _assets_cache["data"]
-        try:
+        async def _fetch():
             async with PocketOptionAsync(SSID) as api:
-                assets = await api.active_assets()
-                active = [a for a in assets if a.get("is_active")
-                          and a.get("name", "").lower() not in BLOCKED_ASSETS]
-                result = sorted(active, key=lambda x: x.get("payout", 0), reverse=True)
-                _assets_cache["data"] = result
-                _assets_cache["ts"] = now2
-                return result
+                return await api.active_assets()
+        try:
+            assets = await asyncio.wait_for(_fetch(), timeout=20)
+            active = [a for a in assets if a.get("is_active")
+                      and a.get("name", "").lower() not in BLOCKED_ASSETS]
+            result = sorted(active, key=lambda x: x.get("payout", 0), reverse=True)
+            _assets_cache["data"] = result
+            _assets_cache["ts"] = now2
+            return result
         except Exception as e:
             print(f"fetch_assets error: {e}")
             return _assets_cache["data"] or []
@@ -253,8 +257,8 @@ def apply_otc_filter(assets: list, context) -> list:
 
 
 # ─── ЦІНА ──────────────────────────────────────────────────────
-async def get_current_price(symbol: str) -> float | None:
-    try:
+async def get_current_price(symbol: str, retries: int = 2) -> float | None:
+    async def _get():
         async with PocketOptionAsync(SSID) as api:
             stream = await api.subscribe_symbol(symbol)
             async for tick in stream:
@@ -262,8 +266,14 @@ async def get_current_price(symbol: str) -> float | None:
                 if val:
                     return float(val)
                 break
-    except Exception as e:
-        print(f"Price error for {symbol}: {e}")
+        return None
+    for attempt in range(retries):
+        try:
+            return await asyncio.wait_for(_get(), timeout=15)
+        except Exception as e:
+            print(f"Price error for {symbol} (attempt {attempt+1}): {e}")
+            if attempt < retries - 1:
+                await asyncio.sleep(1)
     return None
 
 
@@ -290,24 +300,25 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
         elif timeframe <= 900:   count = 30000
         else:                    count = 100000
 
-        async with PocketOptionAsync(SSID) as api:
-            try:
-                candles = await api.get_candles(symbol, timeframe, count)
-            except Exception as ce:
-                print(f"get_candles error {symbol}: {ce}")
-                return {"error": f"Помилка отримання даних для {asset['name']}"}
-            current_price = None
-            try:
-                stream = await api.subscribe_symbol(symbol)
-                async for tick in stream:
-                    val = tick.get("close")
-                    if val:
-                        current_price = float(val)
-                    break
-            except Exception as pe:
-                print(f"Price error {symbol}: {pe}")
+        async def _get_candles():
+            async with PocketOptionAsync(SSID) as api:
+                return await api.get_candles(symbol, timeframe, count)
 
-        if not candles or len(candles) < 14:
+        candles = None
+        for _attempt in range(2):
+            try:
+                candles = await asyncio.wait_for(_get_candles(), timeout=30)
+                break
+            except Exception as ce:
+                print(f"get_candles error {symbol} (attempt {_attempt+1}): {ce}")
+                if _attempt == 0:
+                    await asyncio.sleep(1)
+        if candles is None:
+            return {"error": f"Помилка отримання даних для {asset['name']}"}
+
+        current_price = await get_current_price(symbol)
+
+        if len(candles) < 14:
             raise ValueError(f"Мало даних: {len(candles) if candles else 0}")
 
         df = pd.DataFrame(candles)
@@ -401,22 +412,23 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
         elif timeframe <= 300:   count = 10000
         else:                    count = 30000
 
-        async with PocketOptionAsync(SSID) as api:
+        async def _get_candles():
+            async with PocketOptionAsync(SSID) as api:
+                return await api.get_candles(symbol, timeframe, count)
+
+        candles = None
+        for _attempt in range(2):
             try:
-                candles = await api.get_candles(symbol, timeframe, count)
+                candles = await asyncio.wait_for(_get_candles(), timeout=30)
+                break
             except Exception as ce:
-                print(f"get_candles error {symbol}: {ce}")
-                return {"error": f"Помилка отримання даних для {asset['name']}"}
-            current_price = None
-            try:
-                stream = await api.subscribe_symbol(symbol)
-                async for tick in stream:
-                    val = tick.get("close")
-                    if val:
-                        current_price = float(val)
-                    break
-            except Exception:
-                pass
+                print(f"get_candles error {symbol} (attempt {_attempt+1}): {ce}")
+                if _attempt == 0:
+                    await asyncio.sleep(1)
+        if candles is None:
+            return {"error": f"Помилка отримання даних для {asset['name']}"}
+
+        current_price = await get_current_price(symbol)
 
         if not candles or len(candles) < 10:
             raise ValueError("Мало даних")
@@ -519,11 +531,12 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
         )
         img_path = "imgs/start_imgs/плюс.png" if result == "profit" else "imgs/start_imgs/мінус.png"
         try:
-            await context.bot.send_photo(
-                chat_id=tg_id, photo=open(img_path, "rb"),
-                caption=text, parse_mode="Markdown",
-                reply_markup=main_menu_kb(True, tg_id)
-            )
+            with open(img_path, "rb") as f:
+                await context.bot.send_photo(
+                    chat_id=tg_id, photo=f,
+                    caption=text, parse_mode="Markdown",
+                    reply_markup=main_menu_kb(True, tg_id)
+                )
         except Exception:
             await context.bot.send_message(
                 chat_id=tg_id, text=text, parse_mode="Markdown",
@@ -709,9 +722,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     # Фото
-    await update.message.reply_photo(
-        photo=open("imgs/start_imgs/start.png", "rb"),
-    )
+    with open("imgs/start_imgs/start.png", "rb") as f:
+        await update.message.reply_photo(photo=f)
     # Основне повідомлення
     await update.message.reply_text(
         "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
@@ -763,7 +775,8 @@ async def safe_edit_photo(message, photo_path, caption="", **kwargs):
         await message.delete()
     except Exception:
         pass
-    await message.chat.send_photo(photo=open(photo_path, "rb"), caption=caption, **kwargs)
+    with open(photo_path, "rb") as f:
+        await message.chat.send_photo(photo=f, caption=caption, **kwargs)
 
 
 def check_active_signal(context) -> tuple[bool, int]:
@@ -869,13 +882,14 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
     chat_id = query.message.chat_id
     img_path = find_signal_image(asset, sig["direction"])
     if img_path:
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=open(img_path, "rb"),
-            caption=format_signal(sig),
-            parse_mode="Markdown",
-            reply_markup=after_signal_kb()
-        )
+        with open(img_path, "rb") as f:
+            await context.bot.send_photo(
+                chat_id=chat_id,
+                photo=f,
+                caption=format_signal(sig),
+                parse_mode="Markdown",
+                reply_markup=after_signal_kb()
+            )
     else:
         await context.bot.send_message(
             chat_id=chat_id,
@@ -909,9 +923,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.delete()
         except Exception:
             pass
-        await query.message.chat.send_photo(
-            photo=open("imgs/start_imgs/start.png", "rb"),
-            caption=(
+        with open("imgs/start_imgs/start.png", "rb") as f:
+            await query.message.chat.send_photo(
+                photo=f,
+                caption=(
                 "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
                 "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
                 "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
@@ -1190,6 +1205,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
         assets = apply_otc_filter(await fetch_assets(), context)
+        if not assets:
+            await safe_edit(query.message, "❌ Немає доступних активів. Спробуйте пізніше.",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                ]]))
+            return
         high = [a for a in assets if a.get("payout", 0) >= 83]
         asset = random.choice(high if high else assets)
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
