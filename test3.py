@@ -512,12 +512,7 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
         price_up = exit_price > entry_price
         result = "profit" if ("BUY" in direction and price_up) or ("SELL" in direction and not price_up) else "loss"
 
-        diff_raw = abs(exit_price - entry_price)
-        # Переводимо в пункти (pips): для 5-знакових пар *10000, для 3-знакових *100)
-        if entry_price >= 10:
-            pips = round(diff_raw * 100)
-        else:
-            pips = round(diff_raw * 10000)
+        diff = round(abs(exit_price - entry_price), 5)
         emoji = "✅" if result == "profit" else "❌"
         label = "ПРОФІТ" if result == "profit" else "ЗБИТОК"
 
@@ -530,7 +525,7 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
             f"📈 Напрямок: *{direction}*\n"
             f"💲 Ціна входу:   `{fmt_price(entry_price)}`\n"
             f"💲 Ціна виходу:  `{fmt_price(exit_price)}`\n"
-            f"📊 Різниця: `{pips} пунктів`\n"
+            f"📊 Різниця: `{fmt_price(diff)}`\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
             f"🕐 {datetime.now(UA_TZ).strftime('%H:%M:%S')}"
         )
@@ -884,7 +879,7 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
     timeframe = sig["timeframe"]
     symbol = sig["symbol"]
 
-    block_time = min(timeframe, 300)  # блокування нових сигналів — макс 5 хв
+    block_time = 60  # блокування нових сигналів — макс 5 хв
     context.user_data["active_signal"] = {
         "symbol": symbol, "direction": sig["direction"],
         "entry_price": entry_price,
@@ -1216,7 +1211,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *У вас є активний сигнал!*\n\nВи зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`",
+                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1231,8 +1226,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
-                parse_mode="Markdown",
+                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
                 ]])
@@ -1263,7 +1257,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1326,7 +1320,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
