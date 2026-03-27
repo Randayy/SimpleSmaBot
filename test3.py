@@ -512,7 +512,12 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
         price_up = exit_price > entry_price
         result = "profit" if ("BUY" in direction and price_up) or ("SELL" in direction and not price_up) else "loss"
 
-        diff = round(abs(exit_price - entry_price), 5)
+        diff_raw = abs(exit_price - entry_price)
+        # Переводимо в пункти (pips): для 5-знакових пар *10000, для 3-знакових *100)
+        if entry_price >= 10:
+            pips = round(diff_raw * 100)
+        else:
+            pips = round(diff_raw * 10000)
         emoji = "✅" if result == "profit" else "❌"
         label = "ПРОФІТ" if result == "profit" else "ЗБИТОК"
 
@@ -521,11 +526,11 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
         text = (
             f"{emoji} *{label}*\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
-            f"💱 `{symbol}`\n"
+            f"💱 `{fmt_symbol(symbol)}`\n"
             f"📈 Напрямок: *{direction}*\n"
             f"💲 Ціна входу:   `{fmt_price(entry_price)}`\n"
             f"💲 Ціна виходу:  `{fmt_price(exit_price)}`\n"
-            f"📊 Різниця: `{fmt_price(diff)}`\n"
+            f"📊 Різниця: `{pips} пунктів`\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
             f"🕐 {datetime.now(UA_TZ).strftime('%H:%M:%S')}"
         )
@@ -561,6 +566,20 @@ def fmt_price(price) -> str:
     return f"{p:.10f}".rstrip("0").rstrip(".")
 
 
+def fmt_symbol(symbol: str) -> str:
+    """USDCHF_otc → USD/CHF OTC, BTCUSD → BTC/USD"""
+    s = symbol.replace("_otc", "").replace("_OTC", "")
+    is_otc = symbol.lower().endswith("_otc")
+    # Вставляємо / посередині (якщо 6 символів — це forex типу USDCHF)
+    if "/" not in s and len(s) == 6 and s.isalpha():
+        s = s[:3] + "/" + s[3:]
+    elif "/" not in s and len(s) >= 6 and s.isalpha():
+        # Крипто типу BTCUSD, ETHUSD
+        s = s[:3] + "/" + s[3:]
+    if is_otc:
+        s += " OTC"
+    return s
+
 def fmt_tf(seconds: int) -> str:
     if seconds < 60:    return f"{seconds} сек"
     elif seconds < 3600: return f"{seconds // 60} хв"
@@ -571,7 +590,7 @@ def format_signal(sig: dict) -> str:
     text = (
         f"📊 *СИГНАЛ BEZDELNIK*\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
-        f"💱 *{sig['name']}* (`{sig['symbol']}`)\n"
+        f"💱 *{sig['name']}* (`{fmt_symbol(sig['symbol'])}`)\n"
         f"🏷 Тип:            `{pair_type}`\n"
         f"📈 Напрямок:    *{sig['direction']}*\n"
         f"⏱ Час експірації: `{fmt_tf(sig['timeframe'])}`\n"
@@ -699,7 +718,7 @@ def tf_only_kb(mode: str, symbol: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 def after_signal_kb() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]])
+    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Головне меню", callback_data="menu_new")]])
 
 def bot_activate_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([[InlineKeyboardButton("🔘 АКТИВУВАТИ БОТА", callback_data="activate_bot")]])
@@ -915,6 +934,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_edit(query.message,
             "🏠 *BEZDELNIK BOT* — Головне меню:",
             parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
+        )
+
+    elif data == "menu_new":
+        # Після сигналу — нове повідомлення, сигнал залишається в чаті
+        context.user_data[AI_CHAT_MODE] = False
+        # Прибираємо кнопку з повідомлення сигналу
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text="🏠 *BEZDELNIK BOT* — Головне меню:",
+            parse_mode="Markdown",
+            reply_markup=main_menu(context, query.from_user.id)
         )
 
     elif data == "to_start":
@@ -1182,7 +1216,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *У вас є активний сигнал!*\n\nПочекайте ще `{rem//60}хв {rem%60}сек` поки він завершиться.",
+                f"⏳ *У вас є активний сигнал!*\n\nВи зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1309,7 +1343,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         if mode == "indicators":
             context.user_data["ind_asset"] = asset
-            context.user_data["ind_selected"] = []
+            context.user_data["ind_selected"] = [k for _, k in ALL_INDICATORS]
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES and c["time"] <= 3600]
         await safe_edit(query.message,
