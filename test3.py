@@ -1211,7 +1211,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
+                f"⏳ *Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1226,7 +1226,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
+                f"⏳ *Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд*",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
                 ]])
@@ -1257,7 +1257,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
+                f"⏳ *Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
@@ -1320,7 +1320,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ *Ви зможете отримати новий сигнал через `{rem//60}хв {rem%60}секунд`*",
+                f"⏳ *Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд*",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
