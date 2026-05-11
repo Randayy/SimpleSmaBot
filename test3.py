@@ -1467,9 +1467,15 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_all_users()
         sent, failed = 0, 0
         await update.message.reply_text(f"📢 Розсилаю повідомлення {len(users)} користувачам...")
+        broadcast_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ОТРИМАТИ СИГНАЛ✅", callback_data="to_main_menu")]
+        ])
         for uid in users:
             try:
-                await context.bot.send_message(chat_id=int(uid), text=text, parse_mode="Markdown")
+                await context.bot.send_message(
+                    chat_id=int(uid), text=text, parse_mode="Markdown",
+                    reply_markup=broadcast_kb
+                )
                 sent += 1
             except Exception:
                 failed += 1
@@ -1691,9 +1697,15 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = load_all_users()
         sent, failed = 0, 0
         await update.message.reply_text(f"📢 Розсилаю фото {len(users)} користувачам...")
+        broadcast_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ ОТРИМАТИ СИГНАЛ ✅", callback_data="to_main_menu")]
+        ])
         for uid in users:
             try:
-                await context.bot.send_photo(chat_id=int(uid), photo=photo, caption=caption, parse_mode="Markdown")
+                await context.bot.send_photo(
+                    chat_id=int(uid), photo=photo, caption=caption, parse_mode="Markdown",
+                    reply_markup=broadcast_kb
+                )
                 sent += 1
             except Exception:
                 failed += 1
