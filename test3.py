@@ -58,6 +58,451 @@ ALL_INDICATORS = [
 
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
+LANG_SETTINGS_PATH = "lang_settings.json"
+DEFAULT_LANG = "uk"
+SUPPORTED_LANGS = ("uk", "ru")
+
+
+# ─── ПЕРЕКЛАДИ (i18n) ──────────────────────────────────────────
+TR = {
+    # ── Таймфрейми ──
+    "tf_sec": {"uk": "сек", "ru": "сек"},
+    "tf_min": {"uk": "хв", "ru": "мин"},
+    "tf_hour": {"uk": "год", "ru": "час"},
+
+    # ── Типи активів ──
+    "atype_forex":     {"uk": "💱 Форекс", "ru": "💱 Форекс"},
+    "atype_crypto":    {"uk": "₿ Крипта", "ru": "₿ Крипта"},
+    "atype_stock":     {"uk": "📈 Акції", "ru": "📈 Акции"},
+    "atype_commodity": {"uk": "🛢 Сировина", "ru": "🛢 Сырьё"},
+    "atype_index":     {"uk": "📊 Індекси", "ru": "📊 Индексы"},
+
+    # ── Загальні кнопки ──
+    "btn_back":        {"uk": "⬅️ Назад", "ru": "⬅️ Назад"},
+    "btn_main_menu":   {"uk": "⬅️ Головне меню", "ru": "⬅️ Главное меню"},
+    "btn_help":        {"uk": "💬 ДОПОМОГА", "ru": "💬 ПОМОЩЬ"},
+    "btn_random_pair": {"uk": "🎲 Випадкова пара", "ru": "🎲 Случайная пара"},
+    "btn_get_signal":  {"uk": "🚀 Отримати сигнал", "ru": "🚀 Получить сигнал"},
+    "btn_cancel":      {"uk": "❌ Скасувати", "ru": "❌ Отменить"},
+    "btn_admin_back":  {"uk": "⬅️ Адмін панель", "ru": "⬅️ Админ панель"},
+
+    # ── Головне меню ──
+    "menu_title":         {"uk": "🏠 *BEZDELNIK BOT* — Головне меню:", "ru": "🏠 *BEZDELNIK BOT* — Главное меню:"},
+    "menu_activated":     {"uk": "✅ Бот активований\n\n*BEZDELNIK BOT* — Головне меню:", "ru": "✅ Бот активирован\n\n*BEZDELNIK BOT* — Главное меню:"},
+    "menu_activated_now": {"uk": "🎉 Бот активовано!\n\n*BEZDELNIK BOT* — Головне меню:", "ru": "🎉 Бот активирован!\n\n*BEZDELNIK BOT* — Главное меню:"},
+    "otc_on":   {"uk": "OTC ✅ АКТИВОВАНО", "ru": "OTC ✅ АКТИВИРОВАНО"},
+    "otc_off":  {"uk": "OTC ❌ НЕ АКТИВОВАНО", "ru": "OTC ❌ НЕ АКТИВИРОВАНО"},
+    "btn_on_request":   {"uk": "📲 НА ЗАПИТ", "ru": "📲 ПО ЗАПРОСУ"},
+    "btn_auto_ai":      {"uk": "⚡ АВТО ШІ", "ru": "⚡ АВТО ИИ"},
+    "btn_indicators":   {"uk": "📊 ІНДИКАТОРИ", "ru": "📊 ИНДИКАТОРЫ"},
+    "btn_bezdelnik_ai": {"uk": "🧠 BEZDELNIK AI", "ru": "🧠 BEZDELNIK AI"},
+    "btn_my_signals":   {"uk": "📋 МОЇ СИГНАЛИ", "ru": "📋 МОИ СИГНАЛЫ"},
+    "btn_admin_panel":  {"uk": "⚙️ АДМІН ПАНЕЛЬ", "ru": "⚙️ АДМИН ПАНЕЛЬ"},
+    "btn_lang_uk": {"uk": "🇺🇦 Українська", "ru": "🇺🇦 Українська"},
+    "btn_lang_ru": {"uk": "🇷🇺 Русский", "ru": "🇷🇺 Русский"},
+
+    # ── Блок сигналу ──
+    "sig_title":      {"uk": "📊 *СИГНАЛ BEZDELNIK*", "ru": "📊 *СИГНАЛ BEZDELNIK*"},
+    "sig_type":       {"uk": "🏷 Тип:", "ru": "🏷 Тип:"},
+    "sig_direction":  {"uk": "📈 Напрямок:", "ru": "📈 Направление:"},
+    "sig_expiration": {"uk": "⏱ Час експірації:", "ru": "⏱ Время экспирации:"},
+    "sig_confidence": {"uk": "💯 Впевненість:", "ru": "💯 Уверенность:"},
+    "sig_payout":     {"uk": "💰 Виплата:", "ru": "💰 Выплата:"},
+    "sig_method":     {"uk": "🤖 Метод:", "ru": "🤖 Метод:"},
+    "sig_entry":      {"uk": "💲 Ціна входу:", "ru": "💲 Цена входа:"},
+
+    # ── Результат угоди ──
+    "res_profit": {"uk": "ПРОФІТ", "ru": "ПРОФИТ"},
+    "res_loss":   {"uk": "ЗБИТОК", "ru": "УБЫТОК"},
+    "res_exit":   {"uk": "💲 Ціна виходу:", "ru": "💲 Цена выхода:"},
+    "res_diff":   {"uk": "📊 Різниця:", "ru": "📊 Разница:"},
+
+    # ── Значення індикаторів ──
+    "val_ema_bull":  {"uk": "Бичача ↑", "ru": "Бычья ↑"},
+    "val_ema_bear":  {"uk": "Медвежа ↓", "ru": "Медвежья ↓"},
+    "val_macd_bull": {"uk": "Бичачий ↑", "ru": "Бычий ↑"},
+    "val_macd_bear": {"uk": "Медвежий ↓", "ru": "Медвежий ↓"},
+    "val_bb_low":    {"uk": "Нижня межа 📉", "ru": "Нижняя граница 📉"},
+    "val_bb_high":   {"uk": "Верхня межа 📈", "ru": "Верхняя граница 📈"},
+    "val_bb_mid":    {"uk": "Середина ➡️", "ru": "Середина ➡️"},
+
+    "data_error": {"uk": "Помилка отримання даних для {name}", "ru": "Ошибка получения данных для {name}"},
+
+    # ── Стартові / навігаційні тексти ──
+    "signal_cooldown": {
+        "uk": "⏳ <b>Ви зможете отримати новий сигнал через {m}хв {s}секунд</b>",
+        "ru": "⏳ <b>Вы сможете получить новый сигнал через {m}мин {s}секунд</b>",
+    },
+    "choose_asset_type": {"uk": "📂 Оберіть тип активу:", "ru": "📂 Выберите тип актива:"},
+    "no_assets":         {"uk": "❌ Немає доступних активів. Спробуйте пізніше.", "ru": "❌ Нет доступных активов. Попробуйте позже."},
+    "no_assets_type":    {"uk": "❌ Наразі немає доступних активів цього типу.", "ru": "❌ Сейчас нет доступных активов этого типа."},
+    "generating":        {"uk": "⏳ Генерую сигнал...", "ru": "⏳ Генерирую сигнал..."},
+    "choose_pair":       {"uk": "💱 Оберіть пару:", "ru": "💱 Выберите пару:"},
+    "choose_timeframe":  {"uk": "⏱ *{name}* (`{payout}%`)\n\nОберіть таймфрейм:", "ru": "⏱ *{name}* (`{payout}%`)\n\nВыберите таймфрейм:"},
+    "pair_not_found":    {"uk": "❌ Пару не знайдено", "ru": "❌ Пара не найдена"},
+    "choose_indicators": {
+        "uk": "📊 *{name}* — `{tf}`\n\nОберіть індикатори (або одразу «Отримати сигнал» для всіх):",
+        "ru": "📊 *{name}* — `{tf}`\n\nВыберите индикаторы (или сразу «Получить сигнал» для всех):",
+    },
+    "ai_analyzing":  {"uk": "🧠 BEZDELNIK AI аналізує *{name}*...", "ru": "🧠 BEZDELNIK AI анализирует *{name}*..."},
+    "analyzing_pair": {"uk": "⏳ Аналізую *{name}*...", "ru": "⏳ Анализирую *{name}*..."},
+
+    "my_stats": {
+        "uk": (
+            "💪 *Моя статистика:*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "📊 Кількість угод: `{total}`\n"
+            "✅ Профітних: `{profit}`\n"
+            "❌ Збиткових: `{loss}`\n"
+            "↔️ Нічия: `{draw}`\n\n"
+            "🕒 Днів у боті: `{days}`\n\n"
+            "*Рейтинг активності:*\n"
+            "📊 Ви активніші, ніж `{percentile}%` учасників!"
+        ),
+        "ru": (
+            "💪 *Моя статистика:*\n"
+            "━━━━━━━━━━━━━━━━━━━━\n"
+            "📊 Количество сделок: `{total}`\n"
+            "✅ Прибыльных: `{profit}`\n"
+            "❌ Убыточных: `{loss}`\n"
+            "↔️ Ничья: `{draw}`\n\n"
+            "🕒 Дней в боте: `{days}`\n\n"
+            "*Рейтинг активности:*\n"
+            "📊 Вы активнее, чем `{percentile}%` участников!"
+        ),
+    },
+
+    # ── Стартові кнопки ──
+    "btn_get_bot":        {"uk": "🤖 ОТРИМАТИ РОБОТА", "ru": "🤖 ПОЛУЧИТЬ РОБОТА"},
+    "btn_reviews":        {"uk": "⭐ ВІДГУКИ", "ru": "⭐ ОТЗЫВЫ"},
+    "btn_channel":        {"uk": "📢 КАНАЛ", "ru": "📢 КАНАЛ"},
+    "btn_registration":   {"uk": "🔘 РЕЄСТРАЦІЯ", "ru": "🔘 РЕГИСТРАЦИЯ"},
+    "btn_check_id":       {"uk": "🔘 ПЕРЕВІРИТИ ID", "ru": "🔘 ПРОВЕРИТЬ ID"},
+    "btn_write":          {"uk": "✉️ Написати", "ru": "✉️ Написать"},
+    "btn_activate_bot":   {"uk": "🔘 АКТИВУВАТИ БОТА", "ru": "🔘 АКТИВИРОВАТЬ БОТА"},
+    "btn_check_deposit":  {"uk": "🔘 ПЕРЕВІРИТИ ДЕПОЗИТ", "ru": "🔘 ПРОВЕРИТЬ ДЕПОЗИТ"},
+    "btn_activate_robot": {"uk": "АКТИВУВАТИ РОБОТА 🤖", "ru": "АКТИВИРОВАТЬ РОБОТА 🤖"},
+    "btn_vip_channel":    {"uk": "VIP КАНАЛ 🥳", "ru": "VIP КАНАЛ 🥳"},
+    "btn_training":       {"uk": "НАВЧАННЯ", "ru": "ОБУЧЕНИЕ"},
+    "btn_broadcast":      {"uk": "📢 РОЗСИЛКА", "ru": "📢 РАССЫЛКА"},
+    "btn_add_user":       {"uk": "➕ ДОДАТИ ЮЗЕРА", "ru": "➕ ДОБАВИТЬ ЮЗЕРА"},
+
+    # ── Великі тексти ──
+    "welcome_full": {
+        "uk": (
+            "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
+            "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
+            "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
+            "💡 <b>Що таке BEZDELNIK?</b>\n"
+            "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
+            "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
+            "Поки інші думають — ти вже заробляєш.\n\n"
+            "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
+            "✅ Гнучкі стратегії — обираєш підхід, бот адаптується під твій стиль\n"
+            "✅ Перевірені торгові пари — лише ліквідні та стабільні активи\n"
+            "✅ Сигнали цілодобово — прибутковість до 90% навіть у нічні години\n"
+            "✅ Розумні точки входу — алгоритм сам визначає найкращий момент\n"
+            "✅ Зв'язка з TradingView — повноцінний аналіз + графіки до кожного сигналу\n"
+            "✅ Вибір таймфрейму — від 5 секунд до 4 годин на твій розсуд\n"
+            "✅ Усі класи активів — Форекс, Криптовалюта, Акції, Індекси, Сировина\n"
+            "✅ Живий трекінг результатів — статистика по кожному сигналу за добу та тиждень\n\n"
+            "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок.\n"
+            "Дій впевнено. Торгуй розумно. Заробляй системно.\n\n"
+            "Крім самого бота, ти також отримуєш доступ до всього закритого контенту від BEZDELNIK!"
+        ),
+        "ru": (
+            "🚀 <b>BEZDELNIK</b> — твой личный торговый помощник в 2025!\n"
+            "Собран командой практиков с реальным опытом в трейдинге.\n"
+            "Работает вместо тебя — пока ты живёшь свою жизнь. 24/7/365.\n\n"
+            "💡 <b>Что такое BEZDELNIK?</b>\n"
+            "Это автоматизированный торговый бот со встроенным анализом рынка, умными алгоритмами и простой настройкой.\n"
+            "<i>Запустил — и забыл. Бот сам ведёт торговлю.</i>\n"
+            "Пока другие думают — ты уже зарабатываешь.\n\n"
+            "🔥 <b>Что входит в BEZDELNIK BOT?</b>\n\n"
+            "✅ Гибкие стратегии — выбираешь подход, бот адаптируется под твой стиль\n"
+            "✅ Проверенные торговые пары — только ликвидные и стабильные активы\n"
+            "✅ Сигналы круглосуточно — доходность до 90% даже в ночные часы\n"
+            "✅ Умные точки входа — алгоритм сам определяет лучший момент\n"
+            "✅ Связка с TradingView — полноценный анализ + графики к каждому сигналу\n"
+            "✅ Выбор таймфрейма — от 5 секунд до 4 часов на твоё усмотрение\n"
+            "✅ Все классы активов — Форекс, Криптовалюта, Акции, Индексы, Сырьё\n"
+            "✅ Живой трекинг результатов — статистика по каждому сигналу за сутки и неделю\n\n"
+            "💬 <b>BEZDELNIK</b> — когда рынок работает на тебя, а не ты на рынок.\n"
+            "Действуй уверенно. Торгуй разумно. Зарабатывай системно.\n\n"
+            "Кроме самого бота, ты также получаешь доступ ко всему закрытому контенту от BEZDELNIK!"
+        ),
+    },
+    "welcome_short": {
+        "uk": (
+            "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
+            "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
+            "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
+            "💡 <b>Що таке BEZDELNIK?</b>\n"
+            "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
+            "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
+            "Поки інші думають — ти вже заробляєш.\n\n"
+            "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
+            "✅ Гнучкі стратегії\n"
+            "✅ Перевірені торгові пари\n"
+            "✅ Сигнали цілодобово\n"
+            "✅ Розумні точки входу\n"
+            "✅ Зв'язка з TradingView\n"
+            "✅ Вибір таймфрейму\n"
+            "✅ Усі класи активів\n"
+            "✅ Живий трекінг результатів\n\n"
+            "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок."
+        ),
+        "ru": (
+            "🚀 <b>BEZDELNIK</b> — твой личный торговый помощник в 2025!\n"
+            "Собран командой практиков с реальным опытом в трейдинге.\n"
+            "Работает вместо тебя — пока ты живёшь свою жизнь. 24/7/365.\n\n"
+            "💡 <b>Что такое BEZDELNIK?</b>\n"
+            "Это автоматизированный торговый бот со встроенным анализом рынка, умными алгоритмами и простой настройкой.\n"
+            "<i>Запустил — и забыл. Бот сам ведёт торговлю.</i>\n"
+            "Пока другие думают — ты уже зарабатываешь.\n\n"
+            "🔥 <b>Что входит в BEZDELNIK BOT?</b>\n\n"
+            "✅ Гибкие стратегии\n"
+            "✅ Проверенные торговые пары\n"
+            "✅ Сигналы круглосуточно\n"
+            "✅ Умные точки входа\n"
+            "✅ Связка с TradingView\n"
+            "✅ Выбор таймфрейма\n"
+            "✅ Все классы активов\n"
+            "✅ Живой трекинг результатов\n\n"
+            "💬 <b>BEZDELNIK</b> — когда рынок работает на тебя, а не ты на рынок."
+        ),
+    },
+    "get_bot_text": {
+        "uk": (
+            "Отже, розберемо по кроках. Для того щоб активувати торгового бота "
+            "та отримати доступ до ком'юніті BEZDELNIK, тобі потрібен активний акаунт "
+            "на Pocket Option (реєстрація + поповнення рахунку) — обов'язково через "
+            "партнерське посилання нижче 👇\n"
+            'Pocket Option — <b><a href="https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100">ПОСИЛАННЯ</a></b>\n\n'
+            "<b>Крок 1 — Реєстрація</b>\n"
+            'Переходь за посиланням вище або натискай кнопку "РЕЄСТРАЦІЯ" 👇\n'
+            "Це обов'язкова умова — без реєстрації через наше посилання активація бота буде недоступна.\n\n"
+            '<i>P.S. Якщо ти вже знаходишся у нашому VIP-каналі — просто натисни "Перевірити ID" ✅</i>'
+        ),
+        "ru": (
+            "Итак, разберём по шагам. Чтобы активировать торгового бота "
+            "и получить доступ к сообществу BEZDELNIK, тебе нужен активный аккаунт "
+            "на Pocket Option (регистрация + пополнение счёта) — обязательно через "
+            "партнёрскую ссылку ниже 👇\n"
+            'Pocket Option — <b><a href="https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100">ССЫЛКА</a></b>\n\n'
+            "<b>Шаг 1 — Регистрация</b>\n"
+            'Переходи по ссылке выше или нажимай кнопку "РЕГИСТРАЦИЯ" 👇\n'
+            "Это обязательное условие — без регистрации через нашу ссылку активация бота будет недоступна.\n\n"
+            '<i>P.S. Если ты уже находишься в нашем VIP-канале — просто нажми "Проверить ID" ✅</i>'
+        ),
+    },
+    "help_contact": {
+        "uk": "💬 *Потрібна допомога?*\n\nНапиши нам:",
+        "ru": "💬 *Нужна помощь?*\n\nНапиши нам:",
+    },
+    "reviews_text": {
+        "uk": "⭐ *Відгуки наших користувачів:*\n\nСкоро тут будуть відгуки!",
+        "ru": "⭐ *Отзывы наших пользователей:*\n\nСкоро здесь будут отзывы!",
+    },
+    "check_id_text": {
+        "uk": (
+            "Після успішної реєстрації у твоєму профілі Pocket Option "
+            "буде відображатись унікальний номер акаунту (ID) ❕\n\n"
+            "🆔 *Де знайти ID* — дивись на скріншоті нижче\n\n"
+            "⭕ Введи свій номер акаунту — бот автоматично перевірить, "
+            "чи реєстрація була проведена коректно\n\n"
+            "⚠️ *Важливо!*\n"
+            "ID вводиться виключно цифрами — без літер, пробілів та інших символів.\n"
+            "Приклад: `85340449` → надіслати ❗️\n\n"
+            "Введіть ID у повідомленні нижче 👇"
+        ),
+        "ru": (
+            "После успешной регистрации в твоём профиле Pocket Option "
+            "будет отображаться уникальный номер аккаунта (ID) ❕\n\n"
+            "🆔 *Где найти ID* — смотри на скриншоте ниже\n\n"
+            "⭕ Введи свой номер аккаунта — бот автоматически проверит, "
+            "была ли регистрация проведена корректно\n\n"
+            "⚠️ *Важно!*\n"
+            "ID вводится исключительно цифрами — без букв, пробелов и других символов.\n"
+            "Пример: `85340449` → отправить ❗️\n\n"
+            "Введите ID в сообщении ниже 👇"
+        ),
+    },
+    "deposit_success": {
+        "uk": (
+            "🎉 *Вітаємо у BEZDELNIK!*\n"
+            "Доступ до торгового бота та VIP-матеріалів — відкрито!\n\n"
+            "Тепер ти можеш приєднатись до нашого ком'юніті, де на тебе чекає:\n"
+            "🧐 Активна спільнота трейдерів, які діляться реальним досвідом\n"
+            "📚 BEZDELNIK AI — персональний асистент із будь-яких питань\n"
+            "📊 Торгові сигнали в реальному часі\n"
+            "📝 Чат із учасниками клубу\n"
+            "🤖 І головне — безкоштовний доступ до торгового робота\n\n"
+            "⚠️ *Важливо знати:*\n"
+            "У нас 1 торговий робот:\n"
+            "1️⃣ Він працює персонально з тобою — активувати його можна через кнопку "
+            "\"АКТИВУВАТИ РОБОТА\" ✅\n\n"
+            "❌ *Звернути увагу:*\n"
+            "Створення нового акаунту або видалення поточного автоматично призводить до:\n"
+            "⛔️ Виключення з VIP-доступу\n"
+            "⛔️ Блокування всіх пов'язаних акаунтів\n\n"
+            "🔓 Дотримуйся правил — і все працюватиме без збоїв 😉\n\n"
+            "👇 Подай заявку в команду через кнопку нижче:"
+        ),
+        "ru": (
+            "🎉 *Поздравляем в BEZDELNIK!*\n"
+            "Доступ к торговому боту и VIP-материалам — открыт!\n\n"
+            "Теперь ты можешь присоединиться к нашему сообществу, где тебя ждёт:\n"
+            "🧐 Активное сообщество трейдеров, которые делятся реальным опытом\n"
+            "📚 BEZDELNIK AI — персональный ассистент по любым вопросам\n"
+            "📊 Торговые сигналы в реальном времени\n"
+            "📝 Чат с участниками клуба\n"
+            "🤖 И главное — бесплатный доступ к торговому роботу\n\n"
+            "⚠️ *Важно знать:*\n"
+            "У нас 1 торговый робот:\n"
+            "1️⃣ Он работает персонально с тобой — активировать его можно через кнопку "
+            "\"АКТИВИРОВАТЬ РОБОТА\" ✅\n\n"
+            "❌ *Обрати внимание:*\n"
+            "Создание нового аккаунта или удаление текущего автоматически приводит к:\n"
+            "⛔️ Исключению из VIP-доступа\n"
+            "⛔️ Блокировке всех связанных аккаунтов\n\n"
+            "🔓 Соблюдай правила — и всё будет работать без сбоев 😉\n\n"
+            "👇 Подай заявку в команду через кнопку ниже:"
+        ),
+    },
+    "deposit_not_found": {"uk": "❌ Депозиту ще не зафіксовано", "ru": "❌ Депозит ещё не зафиксирован"},
+    "ai_chat_start": {
+        "uk": (
+            "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
+            "Я твій персональний AI-помічник з трейдингу.\n"
+            "Запитуй про:\n"
+            "• Ситуацію на ринку 📊\n"
+            "• Аналіз активів та валютних пар 💹\n"
+            "• Стратегії торгівлі 📈\n"
+            "• Індикатори та патерни 🔍\n"
+            "• Поради для початківців 🎓\n\n"
+            "Просто напиши своє питання 👇"
+        ),
+        "ru": (
+            "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
+            "Я твой персональный AI-помощник по трейдингу.\n"
+            "Спрашивай про:\n"
+            "• Ситуацию на рынке 📊\n"
+            "• Анализ активов и валютных пар 💹\n"
+            "• Стратегии торговли 📈\n"
+            "• Индикаторы и паттерны 🔍\n"
+            "• Советы для новичков 🎓\n\n"
+            "Просто напиши свой вопрос 👇"
+        ),
+    },
+    "admin_panel": {
+        "uk": (
+            "⚙️ *АДМІН ПАНЕЛЬ*\n\n"
+            "👥 *Натиснули /start:*\n"
+            "├ Нових сьогодні: `{new_today}`\n"
+            "├ Нових за 7 днів: `{new_week}`\n"
+            "├ Нових за 30 днів: `{new_month}`\n"
+            "└ Всього: `{total}`\n\n"
+            "🔄 *Активні:*\n"
+            "├ За 7 днів: `{week}`\n"
+            "├ За 30 днів: `{month}`\n\n"
+            "📊 *Воронка:*\n"
+            "├ Зареєстровані: `{registered}`\n"
+            "├ З депозитом: `{deposits}`\n"
+            "└ Активовані: `{activated}`"
+        ),
+        "ru": (
+            "⚙️ *АДМИН ПАНЕЛЬ*\n\n"
+            "👥 *Нажали /start:*\n"
+            "├ Новых сегодня: `{new_today}`\n"
+            "├ Новых за 7 дней: `{new_week}`\n"
+            "├ Новых за 30 дней: `{new_month}`\n"
+            "└ Всего: `{total}`\n\n"
+            "🔄 *Активные:*\n"
+            "├ За 7 дней: `{week}`\n"
+            "├ За 30 дней: `{month}`\n\n"
+            "📊 *Воронка:*\n"
+            "├ Зарегистрированные: `{registered}`\n"
+            "├ С депозитом: `{deposits}`\n"
+            "└ Активированные: `{activated}`"
+        ),
+    },
+    "admin_broadcast": {
+        "uk": "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — бот розішле його всім користувачам.",
+        "ru": "📢 *Рассылка*\n\nОтправь сообщение (текст или фото с подписью) — бот разошлёт его всем пользователям.",
+    },
+    "admin_add_user": {
+        "uk": "➕ *Додати юзера*\n\nНадішли Telegram ID користувача — бот додасть його в allowed\\_users та активує бота.",
+        "ru": "➕ *Добавить юзера*\n\nОтправь Telegram ID пользователя — бот добавит его в allowed\\_users и активирует бота.",
+    },
+    "broadcast_sending_msg":   {"uk": "📢 Розсилаю повідомлення {n} користувачам...", "ru": "📢 Рассылаю сообщение {n} пользователям..."},
+    "broadcast_sending_photo": {"uk": "📢 Розсилаю фото {n} користувачам...", "ru": "📢 Рассылаю фото {n} пользователям..."},
+    "broadcast_done":          {"uk": "✅ Розсилка завершена!\n\n📨 Доставлено: `{sent}`\n❌ Не доставлено: `{failed}`", "ru": "✅ Рассылка завершена!\n\n📨 Доставлено: `{sent}`\n❌ Не доставлено: `{failed}`"},
+
+    "ai_limit":        {"uk": "⚠️ Ти вичерпав ліміт — *20 повідомлень на день*.\nСпробуй завтра!", "ru": "⚠️ Ты исчерпал лимит — *20 сообщений в день*.\nПопробуй завтра!"},
+    "ai_error":        {"uk": "⚠️ Щось пішло не так, спробуй ще раз.", "ru": "⚠️ Что-то пошло не так, попробуй ещё раз."},
+    "ai_remaining":    {"uk": "\n\n⚠️ _Залишилось {n} повідомлень на сьогодні_", "ru": "\n\n⚠️ _Осталось {n} сообщений на сегодня_"},
+    "ai_illustration": {"uk": "🧠 *BEZDELNIK AI* — ілюстрація", "ru": "🧠 *BEZDELNIK AI* — иллюстрация"},
+    "analyzing_image": {"uk": "🔍 Аналізую зображення...", "ru": "🔍 Анализирую изображение..."},
+    "image_error":     {"uk": "⚠️ Не вдалось проаналізувати зображення, спробуй ще раз.", "ru": "⚠️ Не удалось проанализировать изображение, попробуй ещё раз."},
+
+    "added_users": {"uk": "✅ Додано та активовано: {ids}", "ru": "✅ Добавлено и активировано: {ids}"},
+    "add_failed":  {"uk": "❌ Не вдалося розпізнати жодного ID. Введіть числовий Telegram ID.", "ru": "❌ Не удалось распознать ни одного ID. Введите числовой Telegram ID."},
+
+    "bind_err_other_account": {"uk": "❌ Цей ID вже прив'язаний до іншого акаунту Telegram", "ru": "❌ Этот ID уже привязан к другому аккаунту Telegram"},
+    "bind_err_already":       {"uk": "❌ Твій Telegram вже прив'язаний до ID `{pid}`", "ru": "❌ Твой Telegram уже привязан к ID `{pid}`"},
+
+    "reg_success": {
+        "uk": (
+            "✅ Реєстрація успішно завершена!\n"
+            "Залишився лише останній крок перед початком роботи 🥳\n\n"
+            "🤖 Наш торговий робот працює тільки з активними трейдерами, тому потрібно активувати акаунт — поповнити баланс на будь-яку зручну суму.\n\n"
+            "📹 Внизу ти знайдеш коротку відеоінструкцію, де показано як поповнити рахунок вигідніше та отримати +60% до депозиту.\n"
+            "🎁 Промокод для бонусу:\n"
+            "👉 BEZ100 — +60% до депозиту\n"
+            "...📩 Після поповнення:\n"
+            "надішли мені ще раз свій ID акаунта, і ти отримаєш:\n\n"
+            "✅ Доступ до індивідуальної торгівлі з роботом\n\n"
+            "✅ Запрошення в закриті джерела екосистеми Alentra\n\n"
+            "✅ Додаткові матеріали та сигнали\n\n"
+            "🚀 Радий буду бачити тебе в команді. Ти вже на правильному шляху до результату!\n\n\n"
+            "Поповніть рахунок і лише після цього натисніть кнопку нижче 👇"
+        ),
+        "ru": (
+            "✅ Регистрация успешно завершена!\n"
+            "Остался лишь последний шаг перед началом работы 🥳\n\n"
+            "🤖 Наш торговый робот работает только с активными трейдерами, поэтому нужно активировать аккаунт — пополнить баланс на любую удобную сумму.\n\n"
+            "📹 Внизу ты найдёшь короткую видеоинструкцию, где показано как пополнить счёт выгоднее и получить +60% к депозиту.\n"
+            "🎁 Промокод для бонуса:\n"
+            "👉 BEZ100 — +60% к депозиту\n"
+            "...📩 После пополнения:\n"
+            "отправь мне ещё раз свой ID аккаунта, и ты получишь:\n\n"
+            "✅ Доступ к индивидуальной торговле с роботом\n\n"
+            "✅ Приглашение в закрытые источники экосистемы Alentra\n\n"
+            "✅ Дополнительные материалы и сигналы\n\n"
+            "🚀 Буду рад видеть тебя в команде. Ты уже на правильном пути к результату!\n\n\n"
+            "Пополните счёт и только после этого нажмите кнопку ниже 👇"
+        ),
+    },
+    "account_not_registered": {"uk": "❌ Акаунт не зареєстрований через посилання", "ru": "❌ Аккаунт не зарегистрирован через ссылку"},
+    "join_decline": {"uk": "❌ Щоб отримати доступ до VIP каналу, спочатку активуй бота!", "ru": "❌ Чтобы получить доступ к VIP каналу, сначала активируй бота!"},
+
+    # ── Інструкція мови відповіді для AI ──
+    "ai_respond_lang": {"uk": "Відповідай українською мовою.", "ru": "Отвечай на русском языке."},
+}
+
+
+def t(key: str, lang: str = DEFAULT_LANG, **kwargs) -> str:
+    """Повертає переклад за ключем + мовою. Фолбек: uk → сам ключ."""
+    entry = TR.get(key, {})
+    s = entry.get(lang) or entry.get(DEFAULT_LANG) or key
+    if kwargs:
+        try:
+            s = s.format(**kwargs)
+        except Exception:
+            pass
+    return s
+
 
 # ─── JSON ХЕЛПЕРИ ──────────────────────────────────────────────
 def load_json(path, default):
@@ -77,18 +522,18 @@ def save_json(path, data):
 
 def load_bindings(): return load_json(BINDINGS_PATH, {})
 
-def bind_pocket_id(pocket_id: str, tg_id: int) -> tuple[bool, str]:
+def bind_pocket_id(pocket_id: str, tg_id: int, lang: str = DEFAULT_LANG) -> tuple[bool, str]:
     """Прив'язує pocket_id до tg_id. Повертає (успіх, повідомлення)"""
     bindings = load_bindings()
     # Перевіряємо чи цей pocket_id вже прив'язаний
     if pocket_id in bindings:
         if bindings[pocket_id] == tg_id:
             return True, ""  # Вже прив'язаний до цього юзера — ок
-        return False, "❌ Цей ID вже прив'язаний до іншого акаунту Telegram"
+        return False, t("bind_err_other_account", lang)
     # Перевіряємо чи цей tg_id вже має прив'язку
     for pid, tid in bindings.items():
         if tid == tg_id:
-            return False, f"❌ Твій Telegram вже прив'язаний до ID `{pid}`"
+            return False, t("bind_err_already", lang, pid=pid)
     # Все ок — прив'язуємо
     bindings[pocket_id] = tg_id
     save_json(BINDINGS_PATH, bindings)
@@ -250,6 +695,29 @@ def save_otc_enabled(tg_id: int, enabled: bool):
     settings[str(tg_id)] = enabled
     save_json(OTC_SETTINGS_PATH, settings)
 
+
+def get_lang(context, tg_id: int = None) -> str:
+    """Повертає мову юзера (uk/ru). Спочатку context, потім файл, потім дефолт."""
+    if context is not None and "lang" in context.user_data:
+        return context.user_data["lang"]
+    if tg_id:
+        settings = load_json(LANG_SETTINGS_PATH, {})
+        val = settings.get(str(tg_id), DEFAULT_LANG)
+        if val not in SUPPORTED_LANGS:
+            val = DEFAULT_LANG
+        if context is not None:
+            context.user_data["lang"] = val
+        return val
+    return DEFAULT_LANG
+
+
+def save_lang(tg_id: int, lang: str):
+    if lang not in SUPPORTED_LANGS:
+        lang = DEFAULT_LANG
+    settings = load_json(LANG_SETTINGS_PATH, {})
+    settings[str(tg_id)] = lang
+    save_json(LANG_SETTINGS_PATH, settings)
+
 def apply_otc_filter(assets: list, context) -> list:
     if get_otc_enabled(context):
         return [a for a in assets if a.get("is_otc")]
@@ -292,7 +760,7 @@ def random_ai_signal(asset: dict, timeframe: int, price: float | None) -> dict:
     }
 
 
-async def indicator_signal(asset: dict, timeframe: int, selected_indicators: list | None = None) -> dict:
+async def indicator_signal(asset: dict, timeframe: int, selected_indicators: list | None = None, lang: str = DEFAULT_LANG) -> dict:
     symbol = asset["symbol"]
     try:
         if timeframe <= 60:      count = 5000
@@ -314,7 +782,7 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
                 if _attempt == 0:
                     await asyncio.sleep(1)
         if candles is None:
-            return {"error": f"Помилка отримання даних для {asset['name']}"}
+            return {"error": t("data_error", lang, name=asset['name'])}
 
         current_price = await get_current_price(symbol)
 
@@ -346,7 +814,7 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
         if "ema" in use:
             ef = ta.trend.EMAIndicator(df["close"], window=min(9, n-1)).ema_indicator().iloc[-1]
             es = ta.trend.EMAIndicator(df["close"], window=min(21, n-1)).ema_indicator().iloc[-1]
-            result["ema"] = "Бичача ↑" if ef > es else "Медвежа ↓"
+            result["ema"] = t("val_ema_bull", lang) if ef > es else t("val_ema_bear", lang)
             if ef > es: buy_score += 1
             else:       sell_score += 1
 
@@ -354,7 +822,7 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
             m = ta.trend.MACD(df["close"])
             ml = m.macd().iloc[-1]
             ms = m.macd_signal().iloc[-1]
-            result["macd"] = "Бичачий ↑" if ml > ms else "Медвежий ↓"
+            result["macd"] = t("val_macd_bull", lang) if ml > ms else t("val_macd_bear", lang)
             if ml > ms: buy_score += 1
             else:       sell_score += 1
 
@@ -370,9 +838,9 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
             bbl = bb.bollinger_lband().iloc[-1]
             bbh = bb.bollinger_hband().iloc[-1]
             c = df["close"].iloc[-1]
-            if c <= bbl:   buy_score += 1; result["bb"] = "Нижня межа 📉"
-            elif c >= bbh: sell_score += 1; result["bb"] = "Верхня межа 📈"
-            else:          result["bb"] = "Середина ➡️"
+            if c <= bbl:   buy_score += 1; result["bb"] = t("val_bb_low", lang)
+            elif c >= bbh: sell_score += 1; result["bb"] = t("val_bb_high", lang)
+            else:          result["bb"] = t("val_bb_mid", lang)
 
         if buy_score > sell_score:
             direction = "🟢 BUY"
@@ -404,7 +872,7 @@ async def indicator_signal(asset: dict, timeframe: int, selected_indicators: lis
         return random_ai_signal(asset, timeframe, price)
 
 
-async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
+async def bezdelnik_ai_signal(asset: dict, timeframe: int, lang: str = DEFAULT_LANG) -> dict:
     """Отримує дані і передає в GPT для аналізу"""
     symbol = asset["symbol"]
     try:
@@ -426,7 +894,7 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
                 if _attempt == 0:
                     await asyncio.sleep(1)
         if candles is None:
-            return {"error": f"Помилка отримання даних для {asset['name']}"}
+            return {"error": t("data_error", lang, name=asset['name'])}
 
         current_price = await get_current_price(symbol)
 
@@ -462,7 +930,9 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
 - Останні 5 цін закриття: {[round(c, 5) for c in last_candles]}
 
 Відповідай ТІЛЬКИ у форматі JSON без markdown:
-{{"direction": "BUY або SELL", "confidence": число від 60 до 95, "reason": "коротке пояснення до 100 символів"}}"""
+{{"direction": "BUY або SELL", "confidence": число від 60 до 95, "reason": "коротке пояснення до 100 символів"}}
+
+Поле "reason" пиши цією мовою: {t("ai_respond_lang", lang)}"""
 
         response = await openai_client.chat.completions.create(
             model="gpt-4o-mini",
@@ -486,8 +956,8 @@ async def bezdelnik_ai_signal(asset: dict, timeframe: int) -> dict:
             "type": "BEZDELNIK AI 🧠", "is_otc": asset.get("is_otc", False),
             "current_price": current_price,
             "rsi": round(rsi, 1),
-            "ema": "Бичача ↑" if ef > es else "Медвежа ↓",
-            "macd": "Бичачий ↑" if ml > ms else "Медвежий ↓",
+            "ema": t("val_ema_bull", lang) if ef > es else t("val_ema_bear", lang),
+            "macd": t("val_macd_bull", lang) if ml > ms else t("val_macd_bear", lang),
             "ai_reason": reason,
         }
 
@@ -512,9 +982,10 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
         price_up = exit_price > entry_price
         result = "profit" if ("BUY" in direction and price_up) or ("SELL" in direction and not price_up) else "loss"
 
+        lang = get_lang(context, tg_id)
         diff = round(abs(exit_price - entry_price), 5)
         emoji = "✅" if result == "profit" else "❌"
-        label = "ПРОФІТ" if result == "profit" else "ЗБИТОК"
+        label = t("res_profit", lang) if result == "profit" else t("res_loss", lang)
 
         update_user_stats(tg_id, result)
 
@@ -522,10 +993,10 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
             f"{emoji} *{label}*\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
             f"💱 `{fmt_symbol(symbol)}`\n"
-            f"📈 Напрямок: *{direction}*\n"
-            f"💲 Ціна входу:   `{fmt_price(entry_price)}`\n"
-            f"💲 Ціна виходу:  `{fmt_price(exit_price)}`\n"
-            f"📊 Різниця: `{fmt_price(diff)}`\n"
+            f"{t('sig_direction', lang)} *{direction}*\n"
+            f"{t('sig_entry', lang)}   `{fmt_price(entry_price)}`\n"
+            f"{t('res_exit', lang)}  `{fmt_price(exit_price)}`\n"
+            f"{t('res_diff', lang)} `{fmt_price(diff)}`\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
             f"🕐 {datetime.now(UA_TZ).strftime('%H:%M:%S')}"
         )
@@ -535,12 +1006,12 @@ async def check_signal_result(context: ContextTypes.DEFAULT_TYPE, tg_id: int,
                 await context.bot.send_photo(
                     chat_id=tg_id, photo=f,
                     caption=text, parse_mode="Markdown",
-                    reply_markup=main_menu_kb(True, tg_id)
+                    reply_markup=main_menu(context, tg_id)
                 )
         except Exception:
             await context.bot.send_message(
                 chat_id=tg_id, text=text, parse_mode="Markdown",
-                reply_markup=main_menu_kb(True, tg_id)
+                reply_markup=main_menu(context, tg_id)
             )
     except Exception as e:
         print(f"check_signal_result error: {e}")
@@ -575,26 +1046,26 @@ def fmt_symbol(symbol: str) -> str:
         s += " OTC"
     return s
 
-def fmt_tf(seconds: int) -> str:
-    if seconds < 60:    return f"{seconds} сек"
-    elif seconds < 3600: return f"{seconds // 60} хв"
-    else:               return f"{seconds // 3600} год"
+def fmt_tf(seconds: int, lang: str = DEFAULT_LANG) -> str:
+    if seconds < 60:     return f"{seconds} {t('tf_sec', lang)}"
+    elif seconds < 3600: return f"{seconds // 60} {t('tf_min', lang)}"
+    else:                return f"{seconds // 3600} {t('tf_hour', lang)}"
 
-def format_signal(sig: dict) -> str:
+def format_signal(sig: dict, lang: str = DEFAULT_LANG) -> str:
     pair_type = "OTC 🔄" if sig.get("is_otc") else "Official 📈"
     text = (
-        f"📊 *СИГНАЛ BEZDELNIK*\n"
+        f"{t('sig_title', lang)}\n"
         f"━━━━━━━━━━━━━━━━━━━\n"
         f"💱 *{sig['name']}* (`{fmt_symbol(sig['symbol'])}`)\n"
-        f"🏷 Тип:            `{pair_type}`\n"
-        f"📈 Напрямок:    *{sig['direction']}*\n"
-        f"⏱ Час експірації: `{fmt_tf(sig['timeframe'])}`\n"
-        f"💯 Впевненість: `{sig['confidence']}%`\n"
-        f"💰 Виплата:      `{sig['payout']}%`\n"
-        f"🤖 Метод:         `{sig['type']}`\n"
+        f"{t('sig_type', lang)}            `{pair_type}`\n"
+        f"{t('sig_direction', lang)}    *{sig['direction']}*\n"
+        f"{t('sig_expiration', lang)} `{fmt_tf(sig['timeframe'], lang)}`\n"
+        f"{t('sig_confidence', lang)} `{sig['confidence']}%`\n"
+        f"{t('sig_payout', lang)}      `{sig['payout']}%`\n"
+        f"{t('sig_method', lang)}         `{sig['type']}`\n"
     )
     if sig.get("current_price"):
-        text += f"💲 Ціна входу:    `{fmt_price(sig['current_price'])}`\n"
+        text += f"{t('sig_entry', lang)}    `{fmt_price(sig['current_price'])}`\n"
     if "rsi" in sig:
         text += (
             f"━━━━━━━━━━━━━━━━━━━\n"
@@ -613,40 +1084,46 @@ def format_signal(sig: dict) -> str:
 
 
 # ─── КЛАВІАТУРИ ────────────────────────────────────────────────
-def main_menu_kb(otc: bool, tg_id: int = 0) -> InlineKeyboardMarkup:
-    otc_label = "OTC ✅ АКТИВОВАНО" if otc else "OTC ❌ НЕ АКТИВОВАНО"
+def main_menu_kb(otc: bool, tg_id: int = 0, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    otc_label = t("otc_on", lang) if otc else t("otc_off", lang)
+    lang_uk = ("✅ " if lang == "uk" else "") + t("btn_lang_uk", lang)
+    lang_ru = ("✅ " if lang == "ru" else "") + t("btn_lang_ru", lang)
     rows = [
         [InlineKeyboardButton(otc_label, callback_data="toggle_otc")],
         [
-            InlineKeyboardButton("📲 НА ЗАПИТ", callback_data="sig_request"),
-            InlineKeyboardButton("⚡ АВТО ШІ", callback_data="sig_auto"),
+            InlineKeyboardButton(t("btn_on_request", lang), callback_data="sig_request"),
+            InlineKeyboardButton(t("btn_auto_ai", lang), callback_data="sig_auto"),
         ],
         [
-            InlineKeyboardButton("📊 ІНДИКАТОРИ", callback_data="sig_indicators"),
-            InlineKeyboardButton("🧠 BEZDELNIK AI", callback_data="ai_chat_start"),
+            InlineKeyboardButton(t("btn_indicators", lang), callback_data="sig_indicators"),
+            InlineKeyboardButton(t("btn_bezdelnik_ai", lang), callback_data="ai_chat_start"),
         ],
-        [InlineKeyboardButton("📋 МОЇ СИГНАЛИ", callback_data="my_signals")],
-        [InlineKeyboardButton("💬 ДОПОМОГА", url="https://t.me/NazarUkrain")],
+        [InlineKeyboardButton(t("btn_my_signals", lang), callback_data="my_signals")],
+        [
+            InlineKeyboardButton(lang_uk, callback_data="set_lang_uk"),
+            InlineKeyboardButton(lang_ru, callback_data="set_lang_ru"),
+        ],
+        [InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain")],
     ]
     if tg_id in ADMIN_IDS:
-        rows.append([InlineKeyboardButton("⚙️ АДМІН ПАНЕЛЬ", callback_data="admin_panel")])
+        rows.append([InlineKeyboardButton(t("btn_admin_panel", lang), callback_data="admin_panel")])
     return InlineKeyboardMarkup(rows)
 
 def main_menu(context, tg_id: int = 0) -> InlineKeyboardMarkup:
-    return main_menu_kb(get_otc_enabled(context, tg_id), tg_id)
+    return main_menu_kb(get_otc_enabled(context, tg_id), tg_id, get_lang(context, tg_id))
 
-def asset_type_kb(mode: str) -> InlineKeyboardMarkup:
+def asset_type_kb(mode: str, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     rows = []
     row = []
-    for label, key in ASSET_TYPES:
-        row.append(InlineKeyboardButton(label, callback_data=f"atype_{mode}_{key}"))
+    for _label, key in ASSET_TYPES:
+        row.append(InlineKeyboardButton(t(f"atype_{key}", lang), callback_data=f"atype_{mode}_{key}"))
         if len(row) == 2:
             rows.append(row); row = []
     if row: rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data="to_main_menu")])
+    rows.append([InlineKeyboardButton(t("btn_back", lang), callback_data="to_main_menu")])
     return InlineKeyboardMarkup(rows)
 
-def pair_kb(mode: str, assets: list, page: int = 0) -> InlineKeyboardMarkup:
+def pair_kb(mode: str, assets: list, page: int = 0, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     per_page = 8
     total = len(assets)
     start = page * per_page
@@ -670,23 +1147,23 @@ def pair_kb(mode: str, assets: list, page: int = 0) -> InlineKeyboardMarkup:
     if nav: rows.append(nav)
 
     rows.append([
-        InlineKeyboardButton("🎲 Випадкова пара", callback_data=f"randpair_{mode}"),
-        InlineKeyboardButton("⬅️ Назад", callback_data=f"sig_{mode}"),
+        InlineKeyboardButton(t("btn_random_pair", lang), callback_data=f"randpair_{mode}"),
+        InlineKeyboardButton(t("btn_back", lang), callback_data=f"sig_{mode}"),
     ])
     return InlineKeyboardMarkup(rows)
 
-def timeframe_kb(mode: str, symbol: str, allowed: list) -> InlineKeyboardMarkup:
+def timeframe_kb(mode: str, symbol: str, allowed: list, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     rows = []
     row = []
     for tf in allowed:
-        row.append(InlineKeyboardButton(fmt_tf(tf), callback_data=f"tf_{mode}_{symbol}_{tf}"))
+        row.append(InlineKeyboardButton(fmt_tf(tf, lang), callback_data=f"tf_{mode}_{symbol}_{tf}"))
         if len(row) == 3:
             rows.append(row); row = []
     if row: rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data=f"sig_{mode}")])
+    rows.append([InlineKeyboardButton(t("btn_back", lang), callback_data=f"sig_{mode}")])
     return InlineKeyboardMarkup(rows)
 
-def indicator_select_kb(mode: str, symbol: str, timeframe: int, selected: list) -> InlineKeyboardMarkup:
+def indicator_select_kb(mode: str, symbol: str, timeframe: int, selected: list, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     rows = []
     row = []
     for name, key in ALL_INDICATORS:
@@ -696,42 +1173,43 @@ def indicator_select_kb(mode: str, symbol: str, timeframe: int, selected: list) 
             rows.append(row); row = []
     if row: rows.append(row)
     inds = "|".join(selected) if selected else "all"
-    rows.append([InlineKeyboardButton("🚀 Отримати сигнал", callback_data=f"indgo_{mode}_{symbol}_{timeframe}_{inds}")])
-    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data=f"sig_{mode}")])
+    rows.append([InlineKeyboardButton(t("btn_get_signal", lang), callback_data=f"indgo_{mode}_{symbol}_{timeframe}_{inds}")])
+    rows.append([InlineKeyboardButton(t("btn_back", lang), callback_data=f"sig_{mode}")])
     return InlineKeyboardMarkup(rows)
 
 # Таймфрейм меню для ІНДИКАТОРІВ (без вибору пари — рандомна пара)
-def tf_only_kb(mode: str, symbol: str) -> InlineKeyboardMarkup:
+def tf_only_kb(mode: str, symbol: str, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     rows = []
     row = []
     for tf in WORKING_TIMEFRAMES:
-        row.append(InlineKeyboardButton(fmt_tf(tf), callback_data=f"tf_{mode}_{symbol}_{tf}"))
+        row.append(InlineKeyboardButton(fmt_tf(tf, lang), callback_data=f"tf_{mode}_{symbol}_{tf}"))
         if len(row) == 3:
             rows.append(row); row = []
     if row: rows.append(row)
-    rows.append([InlineKeyboardButton("⬅️ Назад", callback_data="to_main_menu")])
+    rows.append([InlineKeyboardButton(t("btn_back", lang), callback_data="to_main_menu")])
     return InlineKeyboardMarkup(rows)
 
-def after_signal_kb() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Головне меню", callback_data="menu_new")]])
+def after_signal_kb(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_main_menu", lang), callback_data="menu_new")]])
 
-def bot_activate_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔘 АКТИВУВАТИ БОТА", callback_data="activate_bot")]])
+def bot_activate_menu(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_activate_bot", lang), callback_data="activate_bot")]])
 
-def deposit_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[InlineKeyboardButton("🔘 ПЕРЕВІРИТИ ДЕПОЗИТ", callback_data="check_deposit")]])
+def deposit_menu(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_check_deposit", lang), callback_data="check_deposit")]])
 
 
 # ─── ХЕНДЛЕРИ ──────────────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tg_id = update.effective_user.id
     track_user(tg_id)
+    lang = get_lang(context, tg_id)
     # Автоактивація для allowed users
     if tg_id in load_allowed_users():
         save_activated(tg_id)
     if tg_id in load_activated():
         await update.message.reply_text(
-            "✅ Бот активований\n\n*BEZDELNIK BOT* — Головне меню:",
+            t("menu_activated", lang),
             parse_mode="Markdown", reply_markup=main_menu(context, tg_id)
         )
         return
@@ -740,33 +1218,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(photo=f)
     # Основне повідомлення
     await update.message.reply_text(
-        "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
-        "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
-        "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
-        "💡 <b>Що таке BEZDELNIK?</b>\n"
-        "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
-        "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
-        "Поки інші думають — ти вже заробляєш.\n\n"
-        "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
-        "✅ Гнучкі стратегії — обираєш підхід, бот адаптується під твій стиль\n"
-        "✅ Перевірені торгові пари — лише ліквідні та стабільні активи\n"
-        "✅ Сигнали цілодобово — прибутковість до 90% навіть у нічні години\n"
-        "✅ Розумні точки входу — алгоритм сам визначає найкращий момент\n"
-        "✅ Зв'язка з TradingView — повноцінний аналіз + графіки до кожного сигналу\n"
-        "✅ Вибір таймфрейму — від 5 секунд до 4 годин на твій розсуд\n"
-        "✅ Усі класи активів — Форекс, Криптовалюта, Акції, Індекси, Сировина\n"
-        "✅ Живий трекінг результатів — статистика по кожному сигналу за добу та тиждень\n\n"
-        "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок.\n"
-        "Дій впевнено. Торгуй розумно. Заробляй системно.\n\n"
-        "Крім самого бота, ти також отримуєш доступ до всього закритого контенту від BEZDELNIK!",
+        t("welcome_full", lang),
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🤖 ОТРИМАТИ РОБОТА", callback_data="get_bot")],
+            [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")],
             [
-                InlineKeyboardButton("💬 ДОПОМОГА", url="https://t.me/NazarUkrain"),
-                InlineKeyboardButton("⭐ ВІДГУКИ", url="https://t.me/+Hw8LxioNOIJiN2Qy"),
+                InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain"),
+                InlineKeyboardButton(t("btn_reviews", lang), url="https://t.me/+Hw8LxioNOIJiN2Qy"),
             ],
-            [InlineKeyboardButton("📢 КАНАЛ", url="https://t.me/+6ejF11uYS6c3MzFi")],
+            [InlineKeyboardButton(t("btn_channel", lang), url="https://t.me/+6ejF11uYS6c3MzFi")],
         ])
     )
 
@@ -893,6 +1353,7 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
         pass
 
     # Фото пари + напрямок
+    lang = get_lang(context, query.from_user.id)
     chat_id = query.message.chat_id
     img_path = find_signal_image(asset, sig["direction"])
     if img_path:
@@ -900,14 +1361,14 @@ async def send_signal_and_track(query, context, asset: dict, sig: dict, mode: st
             await context.bot.send_photo(
                 chat_id=chat_id,
                 photo=f,
-                caption=format_signal(sig),
+                caption=format_signal(sig, lang),
                 parse_mode="Markdown",
-                reply_markup=after_signal_kb()
+                reply_markup=after_signal_kb(lang)
             )
     else:
         await context.bot.send_message(
             chat_id=chat_id,
-            text=format_signal(sig), parse_mode="Markdown", reply_markup=after_signal_kb()
+            text=format_signal(sig, lang), parse_mode="Markdown", reply_markup=after_signal_kb(lang)
         )
 
     if entry_price:
@@ -922,12 +1383,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
+    lang = get_lang(context, query.from_user.id)
+
+    # ── Перемикач мови ──
+    if data in ("set_lang_uk", "set_lang_ru"):
+        new_lang = "uk" if data == "set_lang_uk" else "ru"
+        context.user_data["lang"] = new_lang
+        save_lang(query.from_user.id, new_lang)
+        lang = new_lang
+        await safe_edit(query.message,
+            t("menu_title", lang),
+            parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
+        )
+        return
 
     # ── Головне меню ──
     if data == "to_main_menu":
         context.user_data[AI_CHAT_MODE] = False
         await safe_edit(query.message,
-            "🏠 *BEZDELNIK BOT* — Головне меню:",
+            t("menu_title", lang),
             parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
         )
 
@@ -941,7 +1415,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
         await context.bot.send_message(
             chat_id=query.message.chat_id,
-            text="🏠 *BEZDELNIK BOT* — Головне меню:",
+            text=t("menu_title", lang),
             parse_mode="Markdown",
             reply_markup=main_menu(context, query.from_user.id)
         )
@@ -955,74 +1429,48 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open("imgs/start_imgs/start.png", "rb") as f:
             await query.message.chat.send_photo(
                 photo=f,
-                caption=(
-                "🚀 <b>BEZDELNIK</b> — твій особистий торговий помічник у 2025!\n"
-                "Зібрано командою практиків із реальним досвідом у трейдингу.\n"
-                "Працює замість тебе — поки ти живеш своє життя. 24/7/365.\n\n"
-                "💡 <b>Що таке BEZDELNIK?</b>\n"
-                "Це автоматизований торговий бот із вбудованим аналізом ринку, розумними алгоритмами та простим налаштуванням.\n"
-                "<i>Запустив — і забув. Бот сам веде торгівлю.</i>\n"
-                "Поки інші думають — ти вже заробляєш.\n\n"
-                "🔥 <b>Що входить у BEZDELNIK BOT?</b>\n\n"
-                "✅ Гнучкі стратегії\n"
-                "✅ Перевірені торгові пари\n"
-                "✅ Сигнали цілодобово\n"
-                "✅ Розумні точки входу\n"
-                "✅ Зв'язка з TradingView\n"
-                "✅ Вибір таймфрейму\n"
-                "✅ Усі класи активів\n"
-                "✅ Живий трекінг результатів\n\n"
-                "💬 <b>BEZDELNIK</b> — коли ринок працює на тебе, а не ти на ринок."
-            ),
+                caption=t("welcome_short", lang),
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🤖 ОТРИМАТИ РОБОТА", callback_data="get_bot")],
+                [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")],
                 [
-                    InlineKeyboardButton("💬 ДОПОМОГА", url="https://t.me/NazarUkrain"),
-                    InlineKeyboardButton("⭐ ВІДГУКИ", url="https://t.me/+Hw8LxioNOIJiN2Qy"),
+                    InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain"),
+                    InlineKeyboardButton(t("btn_reviews", lang), url="https://t.me/+Hw8LxioNOIJiN2Qy"),
                 ],
-                [InlineKeyboardButton("📢 КАНАЛ", url="https://t.me/+6ejF11uYS6c3MzFi")],
+                [InlineKeyboardButton(t("btn_channel", lang), url="https://t.me/+6ejF11uYS6c3MzFi")],
             ])
         )
 
     # ── Стартові кнопки ──
     elif data == "get_bot":
         await safe_edit(query.message,
-            "Отже, розберемо по кроках. Для того щоб активувати торгового бота "
-            "та отримати доступ до ком'юніті BEZDELNIK, тобі потрібен активний акаунт "
-            "на Pocket Option (реєстрація + поповнення рахунку) — обов'язково через "
-            "партнерське посилання нижче 👇\n"
-            'Pocket Option — <b><a href="https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100">ПОСИЛАННЯ</a></b>\n\n'
-            "<b>Крок 1 — Реєстрація</b>\n"
-            'Переходь за посиланням вище або натискай кнопку "РЕЄСТРАЦІЯ" 👇\n'
-            "Це обов'язкова умова — без реєстрації через наше посилання активація бота буде недоступна.\n\n"
-            '<i>P.S. Якщо ти вже знаходишся у нашому VIP-каналі — просто натисни "Перевірити ID" ✅</i>',
+            t("get_bot_text", lang),
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
                 [
-                    InlineKeyboardButton("🔘 РЕЄСТРАЦІЯ", url=REF_LINK_BASE),
-                    InlineKeyboardButton("🔘 ПЕРЕВІРИТИ ID", callback_data="check_id"),
+                    InlineKeyboardButton(t("btn_registration", lang), url=REF_LINK_BASE),
+                    InlineKeyboardButton(t("btn_check_id", lang), callback_data="check_id"),
                 ],
-                [InlineKeyboardButton("⬅️ Назад", callback_data="to_start")],
+                [InlineKeyboardButton(t("btn_back", lang), callback_data="to_start")],
             ])
         )
 
     elif data == "help_contact":
         await safe_edit(query.message,
-            "💬 *Потрібна допомога?*\n\nНапиши нам:",
+            t("help_contact", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✉️ Написати", url="https://t.me/Roma_pdlps")],
-                [InlineKeyboardButton("⬅️ Назад", callback_data="to_start")],
+                [InlineKeyboardButton(t("btn_write", lang), url="https://t.me/Roma_pdlps")],
+                [InlineKeyboardButton(t("btn_back", lang), callback_data="to_start")],
             ])
         )
 
     elif data == "reviews":
         await safe_edit(query.message,
-            "⭐ *Відгуки наших користувачів:*\n\nСкоро тут будуть відгуки!",
+            t("reviews_text", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Назад", callback_data="to_start")],
+                [InlineKeyboardButton(t("btn_back", lang), callback_data="to_start")],
             ])
         )
 
@@ -1039,20 +1487,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "check_id":
         context.user_data[ASKING_ID] = True
         await safe_edit_photo(query.message, "imgs/start_imgs/id_get1.jpg",
-            caption=(
-                "Після успішної реєстрації у твоєму профілі Pocket Option "
-                "буде відображатись унікальний номер акаунту (ID) ❕\n\n"
-                "🆔 *Де знайти ID* — дивись на скріншоті нижче\n\n"
-                "⭕ Введи свій номер акаунту — бот автоматично перевірить, "
-                "чи реєстрація була проведена коректно\n\n"
-                "⚠️ *Важливо!*\n"
-                "ID вводиться виключно цифрами — без літер, пробілів та інших символів.\n"
-                "Приклад: `85340449` → надіслати ❗️\n\n"
-                "Введіть ID у повідомленні нижче 👇"
-            ),
+            caption=t("check_id_text", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Назад", callback_data="get_bot")]
+                [InlineKeyboardButton(t("btn_back", lang), callback_data="get_bot")]
             ])
         )
 
@@ -1061,49 +1499,32 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         deposits = load_deposits()
         if uid and uid in deposits:
             await safe_edit(query.message,
-                "🎉 *Вітаємо у BEZDELNIK!*\n"
-                "Доступ до торгового бота та VIP-матеріалів — відкрито!\n\n"
-                "Тепер ти можеш приєднатись до нашого ком'юніті, де на тебе чекає:\n"
-                "🧐 Активна спільнота трейдерів, які діляться реальним досвідом\n"
-                "📚 BEZDELNIK AI — персональний асистент із будь-яких питань\n"
-                "📊 Торгові сигнали в реальному часі\n"
-                "📝 Чат із учасниками клубу\n"
-                "🤖 І головне — безкоштовний доступ до торгового робота\n\n"
-                "⚠️ *Важливо знати:*\n"
-                "У нас 1 торговий робот:\n"
-                "1️⃣ Він працює персонально з тобою — активувати його можна через кнопку "
-                "\"АКТИВУВАТИ РОБОТА\" ✅\n\n"
-                "❌ *Звернути увагу:*\n"
-                "Створення нового акаунту або видалення поточного автоматично призводить до:\n"
-                "⛔️ Виключення з VIP-доступу\n"
-                "⛔️ Блокування всіх пов'язаних акаунтів\n\n"
-                "🔓 Дотримуйся правил — і все працюватиме без збоїв 😉\n\n"
-                "👇 Подай заявку в команду через кнопку нижче:",
+                t("deposit_success", lang),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
                     [
-                        InlineKeyboardButton("VIP КАНАЛ 🥳", url="https://t.me/+4MRt6RulOTllNDcy"),
-                        InlineKeyboardButton("НАВЧАННЯ", url="https://t.me/+SefYmx71q5ZhNDNi"),
+                        InlineKeyboardButton(t("btn_vip_channel", lang), url="https://t.me/+4MRt6RulOTllNDcy"),
+                        InlineKeyboardButton(t("btn_training", lang), url="https://t.me/+SefYmx71q5ZhNDNi"),
                         InlineKeyboardButton("CHAT", url="https://t.me/+-PFhuomcUcNhN2Yy"),
                     ],
                     [
                         InlineKeyboardButton("Trade Squad", url="https://t.me/+UeH2gccJ044xYmIy"),
                         InlineKeyboardButton("TEAM", url="https://t.me/+E-Z0zFmB7FZjNzMy"),
-                        InlineKeyboardButton("АКТИВУВАТИ РОБОТА 🤖", callback_data="activate_bot"),
+                        InlineKeyboardButton(t("btn_activate_robot", lang), callback_data="activate_bot"),
                     ]
                 ])
             )
         else:
             back_kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔘 ПЕРЕВІРИТИ ДЕПОЗИТ", callback_data="check_deposit")],
-                [InlineKeyboardButton("⬅️ Назад", callback_data="check_id")]
+                [InlineKeyboardButton(t("btn_check_deposit", lang), callback_data="check_deposit")],
+                [InlineKeyboardButton(t("btn_back", lang), callback_data="check_id")]
             ])
-            await safe_edit(query.message, "❌ Депозиту ще не зафіксовано", reply_markup=back_kb)
+            await safe_edit(query.message, t("deposit_not_found", lang), reply_markup=back_kb)
 
     elif data == "activate_bot":
         save_activated(query.from_user.id)
         await safe_edit(query.message,
-            "🎉 Бот активовано!\n\n*BEZDELNIK BOT* — Головне меню:",
+            t("menu_activated_now", lang),
             parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
         )
 
@@ -1112,18 +1533,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data[AI_CHAT_MODE] = True
         context.user_data["ai_chat_history"] = []
         await safe_edit(query.message,
-            "💬 *BEZDELNIK AI — AI Трейдер*\n\n"
-            "Я твій персональний AI-помічник з трейдингу.\n"
-            "Запитуй про:\n"
-            "• Ситуацію на ринку 📊\n"
-            "• Аналіз активів та валютних пар 💹\n"
-            "• Стратегії торгівлі 📈\n"
-            "• Індикатори та патерни 🔍\n"
-            "• Поради для початківців 🎓\n\n"
-            "Просто напиши своє питання 👇",
+            t("ai_chat_start", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
             ])
         )
 
@@ -1159,24 +1572,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         registered = len(load_accounts())
 
         await safe_edit(query.message,
-            f"⚙️ *АДМІН ПАНЕЛЬ*\n\n"
-            f"👥 *Натиснули /start:*\n"
-            f"├ Нових сьогодні: `{new_today}`\n"
-            f"├ Нових за 7 днів: `{new_week}`\n"
-            f"├ Нових за 30 днів: `{new_month}`\n"
-            f"└ Всього: `{total}`\n\n"
-            f"🔄 *Активні:*\n"
-            f"├ За 7 днів: `{week}`\n"
-            f"├ За 30 днів: `{month}`\n\n"
-            f"📊 *Воронка:*\n"
-            f"├ Зареєстровані: `{registered}`\n"
-            f"├ З депозитом: `{deposits}`\n"
-            f"└ Активовані: `{activated}`",
+            t("admin_panel", lang, new_today=new_today, new_week=new_week,
+              new_month=new_month, total=total, week=week, month=month,
+              registered=registered, deposits=deposits, activated=activated),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📢 РОЗСИЛКА", callback_data="admin_broadcast")],
-                [InlineKeyboardButton("➕ ДОДАТИ ЮЗЕРА", callback_data="admin_add_user")],
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")],
+                [InlineKeyboardButton(t("btn_broadcast", lang), callback_data="admin_broadcast")],
+                [InlineKeyboardButton(t("btn_add_user", lang), callback_data="admin_add_user")],
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")],
             ])
         )
 
@@ -1185,11 +1588,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         context.user_data[BROADCAST_MODE] = True
         await safe_edit(query.message,
-            "📢 *Розсилка*\n\nНадішли повідомлення (текст або фото з підписом) — "
-            "бот розішле його всім користувачам.",
+            t("admin_broadcast", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
+                [InlineKeyboardButton(t("btn_cancel", lang), callback_data="admin_panel")]
             ])
         )
 
@@ -1198,11 +1600,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         context.user_data[ADDING_USER_MODE] = True
         await safe_edit(query.message,
-            "➕ *Додати юзера*\n\nНадішли Telegram ID користувача — "
-            "бот додасть його в allowed\_users та активує бота.",
+            t("admin_add_user", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("❌ Скасувати", callback_data="admin_panel")]
+                [InlineKeyboardButton(t("btn_cancel", lang), callback_data="admin_panel")]
             ])
         )
 
@@ -1211,33 +1612,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ <b>Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд</b>",
+                t("signal_cooldown", lang, m=rem//60, s=rem%60),
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
                 ]])
             )
             return
         mode = data.replace("sig_", "")
-        await safe_edit(query.message, "📂 Оберіть тип активу:", reply_markup=asset_type_kb(mode))
+        await safe_edit(query.message, t("choose_asset_type", lang), reply_markup=asset_type_kb(mode, lang))
 
     # ── АВТО ШІ → відразу рандомна пара і таймфрейм ──
     elif data == "sig_auto":
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ <b>Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд</b>",
+                t("signal_cooldown", lang, m=rem//60, s=rem%60),
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
                 ]])
             )
             return
         assets = apply_otc_filter(await fetch_assets(), context)
         if not assets:
-            await safe_edit(query.message, "❌ Немає доступних активів. Спробуйте пізніше.",
+            await safe_edit(query.message, t("no_assets", lang),
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
                 ]]))
             return
         high = [a for a in assets if a.get("payout", 0) >= 83]
@@ -1245,9 +1646,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES]
         timeframe = random.choice(allowed) if allowed else 60
-        await safe_edit(query.message, "⏳ Генерую сигнал...")
+        await safe_edit(query.message, t("generating", lang))
         await asyncio.sleep(random.uniform(2, 4))
-        sig = await indicator_signal(asset, timeframe, None)
+        sig = await indicator_signal(asset, timeframe, None, lang)
         sig["type"] = "BEZDELNIK AI 🤖"
         for k in ("rsi", "ema", "macd", "stoch", "bb"):
             sig.pop(k, None)
@@ -1258,14 +1659,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ <b>Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд</b>",
+                t("signal_cooldown", lang, m=rem//60, s=rem%60),
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
                 ]])
             )
             return
-        await safe_edit(query.message, "📂 Оберіть тип активу:", reply_markup=asset_type_kb("indicators"))
+        await safe_edit(query.message, t("choose_asset_type", lang), reply_markup=asset_type_kb("indicators", lang))
 
     # ── Вибір типу активу ──
     elif data.startswith("atype_"):
@@ -1277,9 +1678,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if not filtered:
             await safe_edit(query.message,
-                "❌ Наразі немає доступних активів цього типу.",
+                t("no_assets_type", lang),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Назад", callback_data=f"sig_{mode}" if mode != "indicators" else "sig_indicators")]
+                    [InlineKeyboardButton(t("btn_back", lang), callback_data=f"sig_{mode}" if mode != "indicators" else "sig_indicators")]
                 ])
             )
             return
@@ -1288,20 +1689,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if mode == "indicators":
             await safe_edit(query.message,
-                "💱 Оберіть пару:",
-                reply_markup=pair_kb("indicators", filtered, 0)
+                t("choose_pair", lang),
+                reply_markup=pair_kb("indicators", filtered, 0, lang)
             )
         else:
             await safe_edit(query.message,
-                "💱 Оберіть пару:",
-                reply_markup=pair_kb(mode, filtered, 0)
+                t("choose_pair", lang),
+                reply_markup=pair_kb(mode, filtered, 0, lang)
             )
 
     # ── Пагінація ──
     elif data.startswith("page_"):
         _, mode, page = data.split("_", 2)
         assets = context.user_data.get(f"assets_{mode}", [])
-        await query.message.edit_reply_markup(reply_markup=pair_kb(mode, assets, int(page)))
+        await query.message.edit_reply_markup(reply_markup=pair_kb(mode, assets, int(page), lang))
 
     # ── Випадкова пара ──
     elif data.startswith("randpair_"):
@@ -1311,9 +1712,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES and c["time"] <= 3600]
         await safe_edit(query.message,
-            f"⏱ *{asset['name']}* (`{asset['payout']}%`)\n\nОберіть таймфрейм:",
+            t("choose_timeframe", lang, name=asset['name'], payout=asset['payout']),
             parse_mode="Markdown",
-            reply_markup=timeframe_kb(mode, asset["symbol"], allowed or [60])
+            reply_markup=timeframe_kb(mode, asset["symbol"], allowed or [60], lang)
         )
 
     # ── Конкретна пара ──
@@ -1321,10 +1722,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         blocked, rem = check_active_signal(context)
         if blocked:
             await safe_edit(query.message,
-                f"⏳ <b>Ви зможете отримати новий сигнал через {rem//60}хв {rem%60}секунд</b>",
+                t("signal_cooldown", lang, m=rem//60, s=rem%60),
                 parse_mode="HTML",
                 reply_markup=InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                    InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
                 ]])
             )
             return
@@ -1334,7 +1735,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         assets = await fetch_assets()
         asset = next((a for a in assets if a["symbol"] == symbol), None)
         if not asset:
-            await safe_edit(query.message, "❌ Пару не знайдено")
+            await safe_edit(query.message, t("pair_not_found", lang))
             return
         if mode == "indicators":
             context.user_data["ind_asset"] = asset
@@ -1342,9 +1743,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         allowed = [c["time"] for c in asset.get("allowed_candles", [{"time": 60}])
                    if c["time"] in WORKING_TIMEFRAMES and c["time"] <= 3600]
         await safe_edit(query.message,
-            f"⏱ *{asset['name']}* (`{asset['payout']}%`)\n\nОберіть таймфрейм:",
+            t("choose_timeframe", lang, name=asset['name'], payout=asset['payout']),
             parse_mode="Markdown",
-            reply_markup=timeframe_kb(mode, symbol, allowed or [60])
+            reply_markup=timeframe_kb(mode, symbol, allowed or [60], lang)
         )
 
     # ── Вибір таймфрейму ──
@@ -1360,7 +1761,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Спробуємо з ind_asset
             asset = context.user_data.get("ind_asset")
         if not asset:
-            await safe_edit(query.message,"❌ Пару не знайдено")
+            await safe_edit(query.message, t("pair_not_found", lang))
             return
 
         if mode == "indicators":
@@ -1368,23 +1769,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             selected = context.user_data.get("ind_selected", [])
             context.user_data["ind_timeframe"] = timeframe
             await safe_edit(query.message,
-                f"📊 *{asset['name']}* — `{fmt_tf(timeframe)}`\n\n"
-                f"Оберіть індикатори (або одразу «Отримати сигнал» для всіх):",
+                t("choose_indicators", lang, name=asset['name'], tf=fmt_tf(timeframe, lang)),
                 parse_mode="Markdown",
-                reply_markup=indicator_select_kb(mode, symbol, timeframe, selected)
+                reply_markup=indicator_select_kb(mode, symbol, timeframe, selected, lang)
             )
         elif mode == "bezdelnik":
-            await safe_edit(query.message,f"🧠 BEZDELNIK AI аналізує *{asset['name']}*...", parse_mode="Markdown")
-            sig = await bezdelnik_ai_signal(asset, timeframe)
+            await safe_edit(query.message, t("ai_analyzing", lang, name=asset['name']), parse_mode="Markdown")
+            sig = await bezdelnik_ai_signal(asset, timeframe, lang)
             if sig.get("error"):
-                await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="menu")]]))
+                await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_back", lang), callback_data="menu")]]))
                 return
             await send_signal_and_track(query, context, asset, sig, mode)
         else:
             # НА ЗАПИТ → аналіз через індикатори (всі), але показуємо як AI
-            await safe_edit(query.message,"⏳ Генерую сигнал...")
+            await safe_edit(query.message, t("generating", lang))
             await asyncio.sleep(random.uniform(2, 4))
-            sig = await indicator_signal(asset, timeframe, None)
+            sig = await indicator_signal(asset, timeframe, None, lang)
             sig["type"] = "BEZDELNIK AI 🤖"
             for k in ("rsi", "ema", "macd", "stoch", "bb"):
                 sig.pop(k, None)
@@ -1402,7 +1802,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else: selected.append(key)
         context.user_data["ind_selected"] = selected
         await query.message.edit_reply_markup(
-            reply_markup=indicator_select_kb(mode, symbol, timeframe, selected)
+            reply_markup=indicator_select_kb(mode, symbol, timeframe, selected, lang)
         )
 
     elif data.startswith("indgo_"):
@@ -1418,13 +1818,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not asset:
             asset = context.user_data.get("ind_asset")
         if not asset:
-            await safe_edit(query.message,"❌ Пару не знайдено")
+            await safe_edit(query.message, t("pair_not_found", lang))
             return
 
-        await safe_edit(query.message,f"⏳ Аналізую *{asset['name']}*...", parse_mode="Markdown")
-        sig = await indicator_signal(asset, timeframe, indicators)
+        await safe_edit(query.message, t("analyzing_pair", lang, name=asset['name']), parse_mode="Markdown")
+        sig = await indicator_signal(asset, timeframe, indicators, lang)
         if sig.get("error"):
-            await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("◀️ Назад", callback_data="menu")]]))
+            await safe_edit(query.message, f"❌ {sig['error']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_back", lang), callback_data="menu")]]))
             return
         await send_signal_and_track(query, context, asset, sig, mode)
 
@@ -1437,21 +1837,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             days = (datetime.now(UA_TZ) - datetime.strptime(s["joined"], "%Y-%m-%d")).days
         except Exception:
             days = 0
-        text = (
-            f"💪 *Моя статистика:*\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📊 Кількість угод: `{s['total']}`\n"
-            f"✅ Профітних: `{s['profit']}`\n"
-            f"❌ Збиткових: `{s['loss']}`\n"
-            f"↔️ Нічия: `{s['draw']}`\n\n"
-            f"🕒 Днів у боті: `{days}`\n\n"
-            f"*Рейтинг активності:*\n"
-            f"📊 Ви активніші, ніж `{percentile}%` учасників!"
-        )
+        text = t("my_stats", lang, total=s['total'], profit=s['profit'],
+                 loss=s['loss'], draw=s['draw'], days=days, percentile=percentile)
         await safe_edit(query.message,
             text, parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")
+                InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")
             ]])
         )
 
@@ -1459,6 +1850,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tg_id = update.effective_user.id
     track_user(tg_id)
+    lang = get_lang(context, tg_id)
 
     # ── РОЗСИЛКА (адмін) ──
     if context.user_data.get(BROADCAST_MODE) and tg_id in ADMIN_IDS:
@@ -1466,7 +1858,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text
         users = load_all_users()
         sent, failed = 0, 0
-        await update.message.reply_text(f"📢 Розсилаю повідомлення {len(users)} користувачам...")
+        await update.message.reply_text(t("broadcast_sending_msg", lang, n=len(users)))
         broadcast_kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("✅ОТРИМАТИ СИГНАЛ✅", callback_data="to_main_menu")]
         ])
@@ -1480,10 +1872,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 failed += 1
         await update.message.reply_text(
-            f"✅ Розсилка завершена!\n\n📨 Доставлено: `{sent}`\n❌ Не доставлено: `{failed}`",
+            t("broadcast_done", lang, sent=sent, failed=failed),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
+                [InlineKeyboardButton(t("btn_admin_back", lang), callback_data="admin_panel")]
             ])
         )
         return
@@ -1503,10 +1895,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ai_count = 0
         if ai_count >= 20:
             await update.message.reply_text(
-                "⚠️ Ти вичерпав ліміт — *20 повідомлень на день*.\nСпробуй завтра!",
+                t("ai_limit", lang),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                    [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
                 ])
             )
             return
@@ -1527,7 +1919,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Ти — BEZDELNIK AI, і тільки так себе називаєш. Якщо тебе запитають хто ти — "
             "відповідай: 'Я BEZDELNIK AI — персональний AI-трейдер від команди BEZDELNIK.' "
             "Ніколи не згадуй ChatGPT, OpenAI чи інші моделі. "
-            "Відповідай українською мовою. Ти допомагаєш трейдерам з аналізом ринку, "
+            f"{t('ai_respond_lang', lang)} Ти допомагаєш трейдерам з аналізом ринку, "
             "валютних пар, криптовалют, акцій, товарів та індексів. "
             "Даєш поради по стратегіях, індикаторах (RSI, MACD, EMA, Bollinger тощо), "
             "патернах свічок, ризик-менеджменті. "
@@ -1564,9 +1956,9 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             img_match = re.search(r"\[IMAGE:\s*(.+?)\]", raw_answer)
             answer = re.sub(r"\[IMAGE:\s*.+?\]", "", raw_answer).strip()
 
-            warn = f"\n\n⚠️ _Залишилось {remaining} повідомлень на сьогодні_" if remaining <= 5 else ""
+            warn = t("ai_remaining", lang, n=remaining) if remaining <= 5 else ""
             back_kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
             ])
             await update.message.reply_text(
                 f"🧠 *BEZDELNIK AI:*\n\n{answer}{warn}",
@@ -1584,7 +1976,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     )
                     await update.message.reply_photo(
                         photo=img_response.data[0].url,
-                        caption="🧠 *BEZDELNIK AI* — ілюстрація",
+                        caption=t("ai_illustration", lang),
                         parse_mode="Markdown", reply_markup=back_kb
                     )
                 except Exception as e:
@@ -1592,9 +1984,9 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print(f"AI Chat error: {e}")
             await update.message.reply_text(
-                "⚠️ Щось пішло не так, спробуй ще раз.",
+                t("ai_error", lang),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                    [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
                 ])
             )
         return
@@ -1621,17 +2013,17 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             added.append(str(uid))
         if added:
             await update.message.reply_text(
-                f"✅ Додано та активовано: `{'`, `'.join(added)}`",
+                t("added_users", lang, ids=f"`{'`, `'.join(added)}`"),
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
+                    [InlineKeyboardButton(t("btn_admin_back", lang), callback_data="admin_panel")]
                 ])
             )
         else:
             await update.message.reply_text(
-                "❌ Не вдалося розпізнати жодного ID. Введіть числовий Telegram ID.",
+                t("add_failed", lang),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
+                    [InlineKeyboardButton(t("btn_admin_back", lang), callback_data="admin_panel")]
                 ])
             )
         return
@@ -1642,45 +2034,25 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data[ASKING_ID] = False
         if user_id and user_id in load_accounts():
             tg_id = update.effective_user.id
-            ok, err_msg = bind_pocket_id(user_id, tg_id)
+            ok, err_msg = bind_pocket_id(user_id, tg_id, lang)
             if not ok:
                 await update.message.reply_text(
                     err_msg, parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⬅️ Назад", callback_data="check_id")]
+                        [InlineKeyboardButton(t("btn_back", lang), callback_data="check_id")]
                     ])
                 )
                 return
             context.user_data["last_user_id"] = user_id
             await update.message.reply_text(
-                """✅ Реєстрація успішно завершена!
-Залишився лише останній крок перед початком роботи 🥳
-
-🤖 Наш торговий робот працює тільки з активними трейдерами, тому потрібно активувати акаунт — поповнити баланс на будь-яку зручну суму.
-
-📹 Внизу ти знайдеш коротку відеоінструкцію, де показано як поповнити рахунок вигідніше та отримати +60% до депозиту.
-🎁 Промокод для бонусу:
-👉 BEZ100 — +60% до депозиту
-...📩 Після поповнення:
-надішли мені ще раз свій ID акаунта, і ти отримаєш:
-
-✅ Доступ до індивідуальної торгівлі з роботом
-
-✅ Запрошення в закриті джерела екосистеми Alentra
-
-✅ Додаткові матеріали та сигнали
-
-🚀 Радий буду бачити тебе в команді. Ти вже на правильному шляху до результату!
-
-
-Поповніть рахунок і лише після цього натисніть кнопку нижче 👇""",
-                parse_mode="Markdown", reply_markup=deposit_menu()
+                t("reg_success", lang),
+                parse_mode="Markdown", reply_markup=deposit_menu(lang)
             )
         else:
             await update.message.reply_text(
-                "❌ Акаунт не зареєстрований через посилання",
+                t("account_not_registered", lang),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⬅️ Назад", callback_data="check_id")]
+                    [InlineKeyboardButton(t("btn_back", lang), callback_data="check_id")]
                 ])
             )
 
@@ -1688,6 +2060,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tg_id = update.effective_user.id
     track_user(tg_id)
+    lang = get_lang(context, tg_id)
 
     # ── РОЗСИЛКА ФОТО (адмін) ──
     if context.user_data.get(BROADCAST_MODE) and tg_id in ADMIN_IDS:
@@ -1696,7 +2069,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption = update.message.caption or ""
         users = load_all_users()
         sent, failed = 0, 0
-        await update.message.reply_text(f"📢 Розсилаю фото {len(users)} користувачам...")
+        await update.message.reply_text(t("broadcast_sending_photo", lang, n=len(users)))
         broadcast_kb = InlineKeyboardMarkup([
             [InlineKeyboardButton("✅ ОТРИМАТИ СИГНАЛ ✅", callback_data="to_main_menu")]
         ])
@@ -1710,10 +2083,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 failed += 1
         await update.message.reply_text(
-            f"✅ Розсилка завершена!\n\n📨 Доставлено: `{sent}`\n❌ Не доставлено: `{failed}`",
+            t("broadcast_done", lang, sent=sent, failed=failed),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Адмін панель", callback_data="admin_panel")]
+                [InlineKeyboardButton(t("btn_admin_back", lang), callback_data="admin_panel")]
             ])
         )
         return
@@ -1731,10 +2104,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ai_count = 0
     if ai_count >= 20:
         await update.message.reply_text(
-            "⚠️ Ти вичерпав ліміт — *20 повідомлень на день*.\nСпробуй завтра!",
+            t("ai_limit", lang),
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
             ])
         )
         return
@@ -1748,13 +2121,13 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = await photo.get_file()
     file_url = file.file_path  # Telegram CDN URL
 
-    await update.message.reply_text("🔍 Аналізую зображення...")
+    await update.message.reply_text(t("analyzing_image", lang))
 
     system_prompt = (
         "Ти — BEZDELNIK AI, торговий AI-аналітик від команди BEZDELNIK. "
         "Ти НЕ ChatGPT. Аналізуй зображення виключно з точки зору трейдингу: "
         "графіки, патерни свічок, індикатори, рівні підтримки/опору. "
-        "Відповідай українською, коротко та по суті. "
+        f"{t('ai_respond_lang', lang)} Відповідай коротко та по суті. "
         "Якщо зображення не стосується трейдингу — скажи що аналізуєш тільки торгові графіки."
     )
 
@@ -1771,20 +2144,20 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             max_tokens=500,
         )
         answer = response.choices[0].message.content.strip()
-        warn = f"\n\n⚠️ _Залишилось {remaining} повідомлень на сьогодні_" if remaining <= 5 else ""
+        warn = t("ai_remaining", lang, n=remaining) if remaining <= 5 else ""
         await update.message.reply_text(
             f"🧠 *BEZDELNIK AI:*\n\n{answer}{warn}",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
             ])
         )
     except Exception as e:
         print(f"AI Vision error: {e}")
         await update.message.reply_text(
-            "⚠️ Не вдалось проаналізувати зображення, спробуй ще раз.",
+            t("image_error", lang),
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Головне меню", callback_data="to_main_menu")]
+                [InlineKeyboardButton(t("btn_main_menu", lang), callback_data="to_main_menu")]
             ])
         )
 
@@ -1808,12 +2181,13 @@ async def join_request_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         print(f"✅ Запит у канал схвалено: {tg_id}")
     else:
         await join_request.decline()
+        lang = get_lang(None, tg_id)
         try:
             await context.bot.send_message(
                 chat_id=tg_id,
-                text="❌ Щоб отримати доступ до VIP каналу, спочатку активуй бота!",
+                text=t("join_decline", lang),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🤖 ОТРИМАТИ РОБОТА", callback_data="get_bot")]
+                    [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")]
                 ])
             )
         except Exception:
