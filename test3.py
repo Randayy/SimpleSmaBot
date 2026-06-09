@@ -1112,6 +1112,23 @@ def main_menu_kb(otc: bool, tg_id: int = 0, lang: str = DEFAULT_LANG) -> InlineK
 def main_menu(context, tg_id: int = 0) -> InlineKeyboardMarkup:
     return main_menu_kb(get_otc_enabled(context, tg_id), tg_id, get_lang(context, tg_id))
 
+def start_menu_kb(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
+    """Клавіатура стартового екрана (для нових / неактивованих юзерів) з перемикачем мови."""
+    lang_uk = ("✅ " if lang == "uk" else "") + t("btn_lang_uk", lang)
+    lang_ru = ("✅ " if lang == "ru" else "") + t("btn_lang_ru", lang)
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")],
+        [
+            InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain"),
+            InlineKeyboardButton(t("btn_reviews", lang), url="https://t.me/+Hw8LxioNOIJiN2Qy"),
+        ],
+        [InlineKeyboardButton(t("btn_channel", lang), url="https://t.me/+6ejF11uYS6c3MzFi")],
+        [
+            InlineKeyboardButton(lang_uk, callback_data="set_lang_uk"),
+            InlineKeyboardButton(lang_ru, callback_data="set_lang_ru"),
+        ],
+    ])
+
 def asset_type_kb(mode: str, lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
     rows = []
     row = []
@@ -1220,14 +1237,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         t("welcome_full", lang),
         parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")],
-            [
-                InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain"),
-                InlineKeyboardButton(t("btn_reviews", lang), url="https://t.me/+Hw8LxioNOIJiN2Qy"),
-            ],
-            [InlineKeyboardButton(t("btn_channel", lang), url="https://t.me/+6ejF11uYS6c3MzFi")],
-        ])
+        reply_markup=start_menu_kb(lang)
     )
 
 
@@ -1391,10 +1401,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["lang"] = new_lang
         save_lang(query.from_user.id, new_lang)
         lang = new_lang
-        await safe_edit(query.message,
-            t("menu_title", lang),
-            parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
-        )
+        if query.from_user.id in load_activated():
+            # Активований юзер → головне меню
+            await safe_edit(query.message,
+                t("menu_title", lang),
+                parse_mode="Markdown", reply_markup=main_menu(context, query.from_user.id)
+            )
+        else:
+            # Новий / неактивований юзер → перемальовуємо стартовий екран
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+            with open("imgs/start_imgs/start.png", "rb") as f:
+                await query.message.chat.send_photo(
+                    photo=f,
+                    caption=t("welcome_short", lang),
+                    parse_mode="HTML",
+                    reply_markup=start_menu_kb(lang)
+                )
         return
 
     # ── Головне меню ──
@@ -1430,16 +1455,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.message.chat.send_photo(
                 photo=f,
                 caption=t("welcome_short", lang),
-            parse_mode="HTML",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t("btn_get_bot", lang), callback_data="get_bot")],
-                [
-                    InlineKeyboardButton(t("btn_help", lang), url="https://t.me/NazarUkrain"),
-                    InlineKeyboardButton(t("btn_reviews", lang), url="https://t.me/+Hw8LxioNOIJiN2Qy"),
-                ],
-                [InlineKeyboardButton(t("btn_channel", lang), url="https://t.me/+6ejF11uYS6c3MzFi")],
-            ])
-        )
+                parse_mode="HTML",
+                reply_markup=start_menu_kb(lang)
+            )
 
     # ── Стартові кнопки ──
     elif data == "get_bot":
