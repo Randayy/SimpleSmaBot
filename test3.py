@@ -5,7 +5,7 @@ import random
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-UA_TZ = timezone(timedelta(hours=2))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
+UA_TZ = timezone(timedelta(hours=3))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import Conflict
 from telegram.ext import (
@@ -21,7 +21,7 @@ from BinaryOptionsToolsV2.pocketoption import PocketOptionAsync
 TOKEN = "8578407218:AAGE5kM5El_nw0j8O83ErH4VJgMvxbm7rBc"
 SSID = '42["auth",{"session":"0dc1s5l5704vapvmm8oh57nmtm","isDemo":1,"uid":125727409,"platform":1,"isFastHistory":true,"isOptimized":true}]'
 REF_LINK_BASE = "https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100"
-OPENAI_API_KEY = "sk-proj-HWnhX_rfVxbW8j4K8ISZH3YF-Z6PxGzgKIRyv559VmsAzDNlP7kCJisrNOqDO8XJBSswkWpRW0T3BlbkFJq0KjXy_N17hHmLcBwnbnT8zU"
+OPENAI_API_KEY = "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"
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 JSON_PATH = "registered_accounts.json"
