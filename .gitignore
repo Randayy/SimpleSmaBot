@@ -21,3 +21,6 @@ venv/
 
 # Server virtualenv
 venv3/
+
+# Secrets
+.env

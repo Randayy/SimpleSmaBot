@@ -19,10 +19,38 @@ from openai import AsyncOpenAI
 from BinaryOptionsToolsV2.pocketoption import PocketOptionAsync
 
 # ─── КОНФІГ ────────────────────────────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def load_env(path: str = os.path.join(BASE_DIR, ".env")) -> None:
+    """Читає .env поруч зі скриптом. Свій мінімальний лоадер, щоб не тягнути
+    залежність python-dotenv і не робити зайвий pip install на сервері.
+    Уже наявні змінні оточення мають пріоритет над файлом."""
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_env()
+
 TOKEN = "8578407218:AAGE5kM5El_nw0j8O83ErH4VJgMvxbm7rBc"
 SSID = '42["auth",{"session":"0dc1s5l5704vapvmm8oh57nmtm","isDemo":1,"uid":125727409,"platform":1,"isFastHistory":true,"isOptimized":true}]'
 REF_LINK_BASE = "https://u3.shortink.io/register?utm_campaign=793458&utm_source=affiliate&utm_medium=sr&a=zk5yIcrmNGT0Jb&ac=pocketbrocker&code=BEZ100"
-OPENAI_API_KEY = "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"
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise SystemExit(
+        "❌ Не знайдено OPENAI_API_KEY.\n"
+        f"   Створіть файл {os.path.join(BASE_DIR, '.env')} за зразком .env.example\n"
+        "   або задайте змінну оточення OPENAI_API_KEY."
+    )
+
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 JSON_PATH = "registered_accounts.json"
