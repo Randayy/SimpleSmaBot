@@ -3,6 +3,7 @@ import os
 import re
 import random
 import asyncio
+import traceback
 from datetime import datetime, timedelta, timezone
 
 UA_TZ = timezone(timedelta(hours=3))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
@@ -2231,7 +2232,11 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print(f"❌ Не вдалося видалити webhook: {e}")
         return
+    # Повний traceback, інакше причину збою в кнопках/хендлерах не видно.
     print(f"❌ Помилка при обробці апдейту: {err!r}")
+    traceback.print_exception(type(err), err, err.__traceback__)
+    if isinstance(update, Update):
+        print(f"   update, що спричинив помилку: {update}")
 
 
 def main():
@@ -2247,7 +2252,10 @@ def main():
     )
     app.add_error_handler(error_handler)
     print("✅ BEZDELNIK BOT запущено")
-    app.run_polling(drop_pending_updates=True)
+    # allowed_updates обовʼязково задаємо явно: інакше Telegram застосує список,
+    # який лишився від попереднього вебхука, і частина типів (callback_query,
+    # chat_join_request) просто не приходитиме.
+    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
