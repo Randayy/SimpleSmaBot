@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 UA_TZ = timezone(timedelta(hours=2))  # Київ UTC+3 (літній час) / UTC+2 (зимовий)
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import Conflict
 from telegram.ext import (
     ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, ChatJoinRequestHandler, ContextTypes, filters
@@ -1218,6 +1219,8 @@ def deposit_menu(lang: str = DEFAULT_LANG) -> InlineKeyboardMarkup:
 
 # ─── ХЕНДЛЕРИ ──────────────────────────────────────────────────
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user is None:
+        return
     tg_id = update.effective_user.id
     track_user(tg_id)
     lang = get_lang(context, tg_id)
@@ -1866,6 +1869,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user is None or update.message is None:
+        return
     tg_id = update.effective_user.id
     track_user(tg_id)
     lang = get_lang(context, tg_id)
@@ -2076,6 +2081,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user is None or update.message is None:
+        return
     tg_id = update.effective_user.id
     track_user(tg_id)
     lang = get_lang(context, tg_id)
@@ -2213,15 +2220,34 @@ async def join_request_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         print(f"❌ Запит у канал відхилено: {tg_id}")
 
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    err = context.error
+    if isinstance(err, Conflict):
+        # Хтось активував webhook (або запущено другий інстанс бота) —
+        # знімаємо webhook, щоб getUpdates знову працював.
+        print(f"⚠️ Conflict: {err}. Видаляю webhook...")
+        try:
+            await context.bot.delete_webhook(drop_pending_updates=True)
+        except Exception as e:
+            print(f"❌ Не вдалося видалити webhook: {e}")
+        return
+    print(f"❌ Помилка при обробці апдейту: {err!r}")
+
+
 def main():
     app = ApplicationBuilder().token(TOKEN).concurrent_updates(True).build()
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("start", start, filters=filters.ChatType.PRIVATE))
     app.add_handler(ChatJoinRequestHandler(join_request_handler))
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+    app.add_handler(MessageHandler(filters.ChatType.PRIVATE & filters.PHOTO, photo_handler))
+    app.add_handler(
+        MessageHandler(
+            filters.ChatType.PRIVATE & filters.TEXT & ~filters.COMMAND, text_handler
+        )
+    )
+    app.add_error_handler(error_handler)
     print("✅ BEZDELNIK BOT запущено")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
